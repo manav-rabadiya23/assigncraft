@@ -133,72 +133,321 @@ function App() {
     "Decision Making & Control Flow Statements",
   ];
 
-  const shouldIgnoreLine = (line) => {
-    const cleanLine = line.trim().toLowerCase();
+  const normalizeLine = (line) =>
+    line
+      .replace(/\u00a0/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .trim();
 
-    return ignoredHeadings.some(
-      (heading) => heading.toLowerCase() === cleanLine,
+  const shouldIgnoreLine = (line) => {
+    const cleanLine = normalizeLine(line);
+    const lowerLine = cleanLine.toLowerCase();
+
+    if (!cleanLine) {
+      return true;
+    }
+
+    if (
+      ignoredHeadings.some((heading) => heading.toLowerCase() === lowerLine)
+    ) {
+      return true;
+    }
+
+    const ignoredPatterns = [
+      /^subject\s*:/i,
+      /^course(?:\s+name|\s+code)?\s*:/i,
+      /^student(?:\s+name|\s+id)?\s*:/i,
+      /^name\s*:/i,
+      /^division\s*:/i,
+      /^class\s*:/i,
+      /^programme?\s*:/i,
+
+      /^lab\s+assignment\b/i,
+      /^practical\s+assignment\b/i,
+
+      /^part\s+[ivxlcdm\d]+\s*[:\-]/i,
+      /^unit\s+[ivxlcdm\d]+\s*[:\-]/i,
+      /^module\s+[ivxlcdm\d]+\s*[:\-]/i,
+      /^section\s+[a-zivxlcdm\d]+\s*[:\-]/i,
+
+      /^(?:bca|mca|b\.?ca|m\.?ca|bsc|msc|btech|mtech)\b.*\bsemester\b/i,
+      /^semester\s+[ivxlcdm\d]+\s*$/i,
+
+      /^instructions?\s*:?\s*$/i,
+      /^general\s+instructions?\s*:?\s*$/i,
+
+      /^page\s+\d+(?:\s+of\s+\d+)?\s*$/i,
+      /^\d+\s*\/\s*\d+\s*$/,
+    ];
+
+    return ignoredPatterns.some((pattern) => pattern.test(cleanLine));
+  };
+
+  const parseExplicitQuestionMarker = (line) => {
+    // Exercise 1, Exercise 1:, Experiment 1
+    const exerciseMatch = line.match(
+      /^(exercise|experiment)\s*(?:no\.?\s*)?(\d+)\s*[.)\-:]?\s*(.*)$/i,
     );
+
+    if (exerciseMatch) {
+      const label =
+        exerciseMatch[1].toLowerCase() === "experiment"
+          ? "Experiment"
+          : "Exercise";
+
+      const number = exerciseMatch[2];
+      const title = exerciseMatch[3]?.trim() || "";
+
+      return {
+        content: title ? `${label} ${number}: ${title}` : `${label} ${number}`,
+      };
+    }
+
+    // Q-1, Q.1, Q 1, Question 1, Question No. 1
+    const questionMatch = line.match(
+      /^(?:q(?:uestion)?|que)\s*(?:no\.?\s*)?[-.:]?\s*(\d+)\s*[.)\-:]?\s*(.*)$/i,
+    );
+
+    if (questionMatch) {
+      return {
+        content: questionMatch[2]?.trim() || "",
+      };
+    }
+
+    return null;
+  };
+
+  const parseNumberedQuestionMarker = (line) => {
+    // 1. Question
+    // 1) Question
+    // 1: Question
+    // 1- Question
+
+    const match = line.match(/^(\d{1,3})\s*[.)\-:]\s+(.+)$/);
+
+    if (!match) {
+      return null;
+    }
+
+    return {
+      content: match[2]?.trim() || "",
+    };
+  };
+
+  const isSectionHeading = (line) => {
+    const cleanLine = normalizeLine(line);
+
+    return [
+      /^part\s+[ivxlcdm\d]+\b/i,
+      /^unit\s+[ivxlcdm\d]+\b/i,
+      /^module\s+[ivxlcdm\d]+\b/i,
+      /^section\s+[a-zivxlcdm\d]+\b/i,
+      /^chapter\s+[ivxlcdm\d]+\b/i,
+
+      /^lab\s+assignment\b/i,
+      /^practical\s+assignment\b/i,
+
+      /^subject\s*:/i,
+
+      /^(?:bca|mca|b\.?ca|m\.?ca|bsc|msc|btech|mtech)\b.*\bsemester\b/i,
+
+      /^semester\s+[ivxlcdm\d]+\s*$/i,
+
+      /^instructions?\s*:/i,
+      /^note\s*:/i,
+
+      /^page\s+\d+(?:\s+of\s+\d+)?\s*$/i,
+      /^\d+\s*\/\s*\d+\s*$/,
+    ].some((pattern) => pattern.test(cleanLine));
+  };
+
+  const cleanDetectedQuestions = (questions) => {
+    const seen = new Set();
+
+    return questions
+      .map((question) =>
+        question
+          .replace(/\s+([,.;:?!])/g, "$1")
+          .replace(/\s+/g, " ")
+          .trim(),
+      )
+      .filter((question) => {
+        if (!question) {
+          return false;
+        }
+
+        const key = question.toLowerCase();
+
+        if (seen.has(key)) {
+          return false;
+        }
+
+        seen.add(key);
+
+        return true;
+      });
   };
 
   const detectQuestions = (text) => {
     const lines = text
       .replace(/\r/g, "")
       .split("\n")
-      .map((line) => line.replace(/\s+/g, " ").trim())
+      .map(normalizeLine)
       .filter(Boolean);
 
-    const questionWithPrefixPattern =
-      /^(?:q(?:uestion)?\s*[-.]?\s*)(\d+)\s*[.)\-:]?\s*(.*)$/i;
+    /*
+     * FIRST:
+     * Look for strong markers like:
+     *
+     * Exercise 1
+     * Experiment 1
+     * Q-1
+     * Question 1
+     *
+     * These are safer than normal numbering.
+     */
 
-    const numberedQuestionPattern = /^(\d+)\s*[.)\-:]\s*(.*)$/;
+    const explicitMarkers = lines
+      .map((line) => parseExplicitQuestionMarker(line))
+      .filter(Boolean);
 
-    const detectedQuestions = [];
-    let currentQuestion = "";
+    const useExplicitMarkers = explicitMarkers.length > 0;
 
-    for (const line of lines) {
-      if (shouldIgnoreLine(line)) {
-        continue;
-      }
+    /*
+     * SECOND:
+     * If explicit markers don't exist,
+     * detect:
+     *
+     * 1.
+     * 2)
+     * 3:
+     */
 
-      const match =
-        line.match(questionWithPrefixPattern) ||
-        line.match(numberedQuestionPattern);
+    const numberedMarkers = useExplicitMarkers
+      ? []
+      : lines.map((line) => parseNumberedQuestionMarker(line)).filter(Boolean);
 
-      if (match) {
-        if (currentQuestion.trim()) {
-          detectedQuestions.push(currentQuestion.trim());
+    const useNumberedMarkers = numberedMarkers.length > 0;
+
+    if (useExplicitMarkers || useNumberedMarkers) {
+      const detectedQuestions = [];
+
+      let currentQuestion = "";
+      let questionStarted = false;
+
+      for (const line of lines) {
+        const marker = useExplicitMarkers
+          ? parseExplicitQuestionMarker(line)
+          : parseNumberedQuestionMarker(line);
+
+        /*
+         * New question found
+         */
+        if (marker) {
+          if (currentQuestion.trim()) {
+            detectedQuestions.push(currentQuestion.trim());
+          }
+
+          currentQuestion = marker.content;
+
+          questionStarted = true;
+
+          continue;
         }
 
-        currentQuestion = match[2]?.trim() || "";
-      } else if (currentQuestion) {
-        currentQuestion = `${currentQuestion} ${line}`.trim();
+        /*
+         * Ignore everything before first question.
+         *
+         * Example:
+         *
+         * MCA Semester I
+         * Lab Assignment 2.1
+         * Subject...
+         */
+
+        if (!questionStarted) {
+          continue;
+        }
+
+        /*
+         * Ignore headings found between questions
+         *
+         * Example:
+         *
+         * Part II: Inheritance
+         */
+
+        if (shouldIgnoreLine(line) || isSectionHeading(line)) {
+          continue;
+        }
+
+        /*
+         * Join wrapped question lines
+         */
+
+        currentQuestion = currentQuestion ? `${currentQuestion} ${line}` : line;
       }
-    }
 
-    if (currentQuestion.trim()) {
-      detectedQuestions.push(currentQuestion.trim());
-    }
+      /*
+       * Add last question
+       */
 
-    if (detectedQuestions.length > 0) {
+      if (currentQuestion.trim()) {
+        detectedQuestions.push(currentQuestion.trim());
+      }
+
       return {
-        questions: detectedQuestions,
+        questions: cleanDetectedQuestions(detectedQuestions),
         usedFallback: false,
       };
     }
 
-    const fallbackQuestions = lines.filter((line) => {
-      if (shouldIgnoreLine(line) || line.length < 10) {
-        return false;
+    /*
+     * FALLBACK
+     *
+     * Used when PDF does not contain:
+     *
+     * Exercise 1
+     * Q-1
+     * Question 1
+     * 1.
+     *
+     * This is safer than your old fallback because
+     * it does NOT treat every line as a question.
+     */
+
+    const questionStartPattern =
+      /^(?:write|create|develop|demonstrate|explain|define|describe|calculate|accept|initialize|design|implement|find|display|show|access|compare|differentiate|derive|convert|check|print|read|enter|what|why|how|which|when|where|who)\b/i;
+
+    const fallbackQuestions = [];
+
+    let currentFallback = "";
+
+    for (const line of lines) {
+      if (shouldIgnoreLine(line) || isSectionHeading(line)) {
+        continue;
       }
 
-      return !/^(assignment|subject|student|name|division|course|instructions?)\s*[:-]?/i.test(
-        line,
-      );
-    });
+      const looksLikeQuestion =
+        questionStartPattern.test(line) || /\?\s*$/.test(line);
+
+      if (looksLikeQuestion) {
+        if (currentFallback.trim()) {
+          fallbackQuestions.push(currentFallback.trim());
+        }
+
+        currentFallback = line;
+      } else if (currentFallback) {
+        currentFallback = `${currentFallback} ${line}`.trim();
+      }
+    }
+
+    if (currentFallback.trim()) {
+      fallbackQuestions.push(currentFallback.trim());
+    }
 
     return {
-      questions: fallbackQuestions,
+      questions: cleanDetectedQuestions(fallbackQuestions),
       usedFallback: true,
     };
   };
@@ -211,38 +460,94 @@ function App() {
     });
 
     const pdf = await loadingTask.promise;
+
     const allPagesText = [];
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
+
       const textContent = await page.getTextContent();
 
-      let pageText = "";
+      const pageLines = [];
+
+      let currentLine = [];
+
+      let currentY = null;
+
+      const flushLine = () => {
+        const line = normalizeLine(currentLine.join(" "));
+
+        if (line) {
+          pageLines.push(line);
+        }
+
+        currentLine = [];
+      };
 
       for (const item of textContent.items) {
         if (!("str" in item)) {
           continue;
         }
 
-        pageText += item.str;
-        pageText += item.hasEOL ? "\n" : " ";
+        const textValue = normalizeLine(item.str);
+
+        if (!textValue) {
+          if (item.hasEOL && currentLine.length > 0) {
+            flushLine();
+
+            currentY = null;
+          }
+
+          continue;
+        }
+
+        const itemY = Array.isArray(item.transform) ? item.transform[5] : null;
+
+        /*
+         * Detect new PDF line using Y position.
+         *
+         * Some PDFs don't provide hasEOL correctly.
+         */
+
+        if (
+          currentLine.length > 0 &&
+          currentY !== null &&
+          itemY !== null &&
+          Math.abs(itemY - currentY) > 2.5
+        ) {
+          flushLine();
+        }
+
+        currentLine.push(textValue);
+
+        if (itemY !== null) {
+          currentY = itemY;
+        }
+
+        if (item.hasEOL) {
+          flushLine();
+
+          currentY = null;
+        }
       }
 
-      allPagesText.push(pageText);
+      if (currentLine.length > 0) {
+        flushLine();
+      }
+
+      allPagesText.push(pageLines.join("\n"));
     }
 
     return allPagesText.join("\n");
   };
+  //   const arrayBuffer = await file.arrayBuffer();
 
-  const extractTextFromDocx = async (file) => {
-    const arrayBuffer = await file.arrayBuffer();
+  //   const result = await mammoth.extractRawText({
+  //     arrayBuffer,
+  //   });
 
-    const result = await mammoth.extractRawText({
-      arrayBuffer,
-    });
-
-    return result.value;
-  };
+  //   return result.value;
+  // };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];

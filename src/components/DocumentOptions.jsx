@@ -16,7 +16,8 @@ export default function DocumentOptions({
         <div>
           <h2 className="text-xl font-bold text-slate-900">Document Options</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Choose which assignment details should appear. Then separately decide whether those selected details should repeat on every page.
+            Choose which assignment details should appear. Then separately
+            decide whether those selected details should repeat on every page.
           </p>
         </div>
       </div>
@@ -55,9 +56,17 @@ export default function DocumentOptions({
           className="h-5 w-5 accent-indigo-600"
         />
         <div>
-          <div className="font-bold text-slate-800">Show header on every page</div>
+          <div className="font-bold text-slate-800">
+            Show header on every page
+          </div>
           <div className="text-xs text-slate-500">
-            When enabled, the selected details above repeat on every page. When disabled, they appear only once on the first page.
+            Repeat the selected details on every page. If disabled, they will
+            appear only on the first page of the generated document. <br></br>
+            <br />
+            <b>ℹ️ Note:</b>
+            The repeating header is shown accurately in the{" "}
+            <b>downloaded Word document</b> and <b>Print Preview</b>. The in-app
+            preview may not fully reflect this feature.{" "}
           </div>
         </div>
       </label>

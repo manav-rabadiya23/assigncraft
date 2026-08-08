@@ -16,6 +16,9 @@ export const EMPTY_DETAILS = {
 export const DEFAULT_DOCUMENT_OPTIONS = {
   showHeaderEveryPage: false,
   showPageNumbers: false,
+  includeCode: true,
+  includeOutput: true,
+  customAnswerSections: [],
   headerFields: {
     fullName: true,
     studentId: true,

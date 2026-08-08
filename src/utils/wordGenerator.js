@@ -87,30 +87,55 @@ function createDetailsTable(details, options) {
   });
 }
 
-function createQuestionTable(question, index) {
-  return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: createTableBorders(),
-    rows: [
-      new TableRow({
-        children: [
-          createCell({ text: `Q-${index + 1}`, width: 20, bold: true }),
-          createCell({ text: question, width: 80 }),
-        ],
-      }),
+function createQuestionTable(question, index, options) {
+  const rows = [
+    new TableRow({
+      children: [
+        createCell({ text: `Q-${index + 1}`, width: 20, bold: true }),
+        createCell({ text: question, width: 80 }),
+      ],
+    }),
+  ];
+
+  if (options.includeCode) {
+    rows.push(
       new TableRow({
         children: [
           createCell({ text: "Code", width: 20, bold: true }),
           createCell({ text: "", width: 80, blankLines: 8 }),
         ],
       }),
+    );
+  }
+
+  if (options.includeOutput) {
+    rows.push(
       new TableRow({
         children: [
           createCell({ text: "Output", width: 20, bold: true }),
           createCell({ text: "", width: 80, blankLines: 6 }),
         ],
       }),
-    ],
+    );
+  }
+
+  (options.customAnswerSections || [])
+    .filter((section) => section.enabled)
+    .forEach((section) => {
+      rows.push(
+        new TableRow({
+          children: [
+            createCell({ text: section.label, width: 20, bold: true }),
+            createCell({ text: "", width: 80, blankLines: 6 }),
+          ],
+        }),
+      );
+    });
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: createTableBorders(),
+    rows,
   });
 }
 
@@ -204,7 +229,7 @@ export async function generateWordAssignment({ details, questions, options }) {
           }),
         ],
       }),
-      createQuestionTable(question, index),
+      createQuestionTable(question, index, options),
       new Paragraph({
         spacing: { after: 220 },
         children: [new TextRun({ text: " " })],

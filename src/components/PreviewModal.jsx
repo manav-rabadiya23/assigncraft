@@ -66,26 +66,69 @@ function WordLikePage({ details, questions, options }) {
             </h4>
 
             <div className="border border-slate-600 text-[16px]">
-              <div className="grid grid-cols-[95px_1fr] border-b border-slate-600">
+              <div
+                className={`grid grid-cols-[95px_1fr] ${
+                  options.includeCode ||
+                  options.includeOutput ||
+                  (options.customAnswerSections || []).some((section) => section.enabled)
+                    ? "border-b border-slate-600"
+                    : ""
+                }`}
+              >
                 <div className="border-r border-slate-600 p-3 font-bold">
                   Q-{index + 1}
                 </div>
                 <div className="p-3 leading-6">{question}</div>
               </div>
 
-              <div className="grid grid-cols-[95px_1fr] border-b border-slate-600">
-                <div className="border-r border-slate-600 p-3 font-bold">
-                  Code
+              {options.includeCode && (
+                <div
+                  className={`grid grid-cols-[95px_1fr] ${
+                    options.includeOutput ||
+                    (options.customAnswerSections || []).some((section) => section.enabled)
+                      ? "border-b border-slate-600"
+                      : ""
+                  }`}
+                >
+                  <div className="border-r border-slate-600 p-3 font-bold">
+                    Code
+                  </div>
+                  <div className="h-44 bg-white" />
                 </div>
-                <div className="h-44 bg-white" />
-              </div>
+              )}
 
-              <div className="grid grid-cols-[95px_1fr]">
-                <div className="border-r border-slate-600 p-3 font-bold">
-                  Output
+              {options.includeOutput && (
+                <div
+                  className={`grid grid-cols-[95px_1fr] ${
+                    (options.customAnswerSections || []).some((section) => section.enabled)
+                      ? "border-b border-slate-600"
+                      : ""
+                  }`}
+                >
+                  <div className="border-r border-slate-600 p-3 font-bold">
+                    Output
+                  </div>
+                  <div className="h-32 bg-white" />
                 </div>
-                <div className="h-32 bg-white" />
-              </div>
+              )}
+
+              {(options.customAnswerSections || [])
+                .filter((section) => section.enabled)
+                .map((section, sectionIndex, enabledSections) => (
+                  <div
+                    key={section.id}
+                    className={`grid grid-cols-[95px_1fr] ${
+                      sectionIndex < enabledSections.length - 1
+                        ? "border-b border-slate-600"
+                        : ""
+                    }`}
+                  >
+                    <div className="border-r border-slate-600 p-3 font-bold">
+                      {section.label}
+                    </div>
+                    <div className="h-32 bg-white" />
+                  </div>
+                ))}
             </div>
           </div>
         ))}

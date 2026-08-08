@@ -1,4 +1,16 @@
-export default function QuestionsSection({ questions, questionRefs, onUpdate, onAddEnd, onAddBefore, onAddAfter, onDelete, onMove, onClear }) {
+export default function QuestionsSection({ questions, questionRefs, onUpdate, onAddEnd, onAddBefore, onAddAfter, onDelete, onMove, onReorder, onClear }) {
+  const handleDragStart = (event, index) => {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleDrop = (event, targetIndex) => {
+    event.preventDefault();
+    const sourceIndex = Number(event.dataTransfer.getData("text/plain"));
+    if (!Number.isInteger(sourceIndex) || sourceIndex === targetIndex) return;
+    onReorder(sourceIndex, targetIndex);
+  };
+
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-300/30 sm:p-8">
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -6,7 +18,7 @@ export default function QuestionsSection({ questions, questionRefs, onUpdate, on
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-600 text-lg font-bold text-white">4</div>
           <div>
             <h2 className="text-xl font-bold text-slate-900">Detected Questions</h2>
-            <p className="mt-1 text-sm text-slate-500">Question numbers are automatic. Add, delete or move questions and numbering rearranges itself.</p>
+            <p className="mt-1 text-sm text-slate-500">{questions.length} question{questions.length === 1 ? "" : "s"}. Add, delete, move or drag questions and numbering rearranges itself automatically.</p>
           </div>
         </div>
 
@@ -20,7 +32,7 @@ export default function QuestionsSection({ questions, questionRefs, onUpdate, on
         <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center">
           <div className="text-4xl">📄</div>
           <p className="mt-4 font-semibold text-slate-700">No questions available</p>
-          <p className="mt-1 text-sm text-slate-500">Upload a file or add a question manually.</p>
+          <p className="mt-1 text-sm text-slate-500">Upload files, paste questions or add a question manually.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -28,10 +40,24 @@ export default function QuestionsSection({ questions, questionRefs, onUpdate, on
             <div
               key={index}
               ref={(element) => { questionRefs.current[index] = element; }}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => handleDrop(event, index)}
               className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition focus-within:border-indigo-300 focus-within:bg-white focus-within:shadow-md sm:p-5"
             >
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span className="rounded-lg bg-indigo-100 px-3 py-1.5 text-sm font-bold text-indigo-700">Question {index + 1}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) => handleDragStart(event, index)}
+                    className="cursor-grab rounded-lg border border-slate-200 bg-white px-2 py-1.5 font-bold text-slate-400 hover:text-indigo-600 active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-label={`Drag Question ${index + 1} to reorder`}
+                  >
+                    ⋮⋮
+                  </button>
+                  <span className="rounded-lg bg-indigo-100 px-3 py-1.5 text-sm font-bold text-indigo-700">Question {index + 1}</span>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <button type="button" onClick={() => onAddBefore(index)} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">+ Before</button>
                   <button type="button" onClick={() => onAddAfter(index)} className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">+ After</button>

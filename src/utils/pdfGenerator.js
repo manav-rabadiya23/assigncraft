@@ -68,9 +68,14 @@ function drawQuestionTable(doc, question, index, y, details, options, state) {
   const labelWidth = 25;
   const questionLines = doc.splitTextToSize(question, CONTENT_WIDTH - labelWidth - 4);
   const questionHeight = Math.max(12, questionLines.length * 5 + 5);
-  const codeHeight = 34;
-  const outputHeight = 26;
-  const totalHeight = questionHeight + codeHeight + outputHeight;
+  const codeHeight = options.includeCode ? 34 : 0;
+  const outputHeight = options.includeOutput ? 26 : 0;
+  const customSections = (options.customAnswerSections || []).filter(
+    (section) => section.enabled,
+  );
+  const customSectionHeight = 26;
+  const customHeight = customSections.length * customSectionHeight;
+  const totalHeight = questionHeight + codeHeight + outputHeight + customHeight;
 
   y = ensureSpace(doc, y, totalHeight + 10, details, options, state);
 
@@ -83,17 +88,37 @@ function drawQuestionTable(doc, question, index, y, details, options, state) {
   doc.text(questionLines, MARGIN + labelWidth + 2, y + 6);
   y += questionHeight;
 
-  doc.rect(MARGIN, y, labelWidth, codeHeight);
-  doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, codeHeight);
-  doc.setFont("times", "bold");
-  doc.text("Code", MARGIN + 2, y + 6);
-  y += codeHeight;
+  if (options.includeCode) {
+    doc.rect(MARGIN, y, labelWidth, codeHeight);
+    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, codeHeight);
+    doc.setFont("times", "bold");
+    doc.text("Code", MARGIN + 2, y + 6);
+    y += codeHeight;
+  }
 
-  doc.rect(MARGIN, y, labelWidth, outputHeight);
-  doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, outputHeight);
-  doc.text("Output", MARGIN + 2, y + 6);
-  y += outputHeight + 8;
+  if (options.includeOutput) {
+    doc.rect(MARGIN, y, labelWidth, outputHeight);
+    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, outputHeight);
+    doc.setFont("times", "bold");
+    doc.text("Output", MARGIN + 2, y + 6);
+    y += outputHeight;
+  }
 
+  customSections.forEach((section) => {
+    doc.rect(MARGIN, y, labelWidth, customSectionHeight);
+    doc.rect(
+      MARGIN + labelWidth,
+      y,
+      CONTENT_WIDTH - labelWidth,
+      customSectionHeight,
+    );
+    doc.setFont("times", "bold");
+    const labelLines = doc.splitTextToSize(section.label, labelWidth - 4);
+    doc.text(labelLines, MARGIN + 2, y + 6);
+    y += customSectionHeight;
+  });
+
+  y += 8;
   return y;
 }
 

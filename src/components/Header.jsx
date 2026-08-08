@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
+
 import {
   FaChevronDown,
   FaFileArrowUp,
@@ -44,18 +45,36 @@ const featureItems = [
 ];
 
 export default function Header() {
-  const [hoverOpen, setHoverOpen] = useState(false);
-  const [clickedOpen, setClickedOpen] = useState(false);
+  // Desktop Features
+  const [desktopHoverOpen, setDesktopHoverOpen] = useState(false);
+  const [desktopClickOpen, setDesktopClickOpen] = useState(false);
+
+  // Mobile
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
 
-  const featureRef = useRef(null);
-  const featuresOpen = hoverOpen || clickedOpen;
+  const desktopFeatureRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
+  const desktopFeaturesOpen = desktopHoverOpen || desktopClickOpen;
+
+  // CLOSE MENUS WHEN CLICKING OUTSIDE
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (featureRef.current && !featureRef.current.contains(event.target)) {
-        setClickedOpen(false);
-        setHoverOpen(false);
+      if (
+        desktopFeatureRef.current &&
+        !desktopFeatureRef.current.contains(event.target)
+      ) {
+        setDesktopClickOpen(false);
+        setDesktopHoverOpen(false);
+      }
+
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target)
+      ) {
+        setMobileOpen(false);
+        setMobileFeaturesOpen(false);
       }
     };
 
@@ -66,6 +85,11 @@ export default function Header() {
     };
   }, []);
 
+  const closeMobileMenu = () => {
+    setMobileOpen(false);
+    setMobileFeaturesOpen(false);
+  };
+
   const navClass = ({ isActive }) =>
     `rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
       isActive
@@ -73,19 +97,27 @@ export default function Header() {
         : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
     }`;
 
+  const mobileNavClass = ({ isActive }) =>
+    `flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+      isActive
+        ? "bg-indigo-50 text-indigo-700"
+        : "text-slate-700 hover:bg-slate-50"
+    }`;
+
   return (
     <header className="relative z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
-      {" "}
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
-        {" "}
-        {/* BRAND */}
-        <NavLink to="/" className="group -ml-2 flex items-center">
-          <p className="font-serif text-[17px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
+        {/* TAGLINE */}
+        <NavLink to="/" className="group min-w-0" onClick={closeMobileMenu}>
+          <p className="truncate font-serif text-[14px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600 sm:text-[17px]">
             From Questions to Document
           </p>
         </NavLink>
-        {/* DESKTOP NAV */}
+
+        {/* ================= DESKTOP NAV ================= */}
+
         <nav className="hidden items-center gap-1.5 md:flex">
+          {/* HOME */}
           <NavLink to="/" end className={navClass}>
             <span className="inline-flex items-center gap-2">
               <FaHouse className="text-[12px]" />
@@ -93,6 +125,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* HOW IT WORKS */}
           <NavLink to="/how-it-works" className={navClass}>
             <span className="inline-flex items-center gap-2">
               <FaCircleInfo className="text-[12px]" />
@@ -100,6 +133,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* WHY ASSIGNCRAFT */}
           <NavLink to="/why-assigncraft" className={navClass}>
             <span className="inline-flex items-center gap-2">
               <FaBolt className="text-[12px]" />
@@ -107,18 +141,18 @@ export default function Header() {
             </span>
           </NavLink>
 
-          {/* FEATURES DROPDOWN */}
+          {/* DESKTOP FEATURES */}
           <div
-            ref={featureRef}
+            ref={desktopFeatureRef}
             className="relative"
-            onMouseEnter={() => setHoverOpen(true)}
-            onMouseLeave={() => setHoverOpen(false)}
+            onMouseEnter={() => setDesktopHoverOpen(true)}
+            onMouseLeave={() => setDesktopHoverOpen(false)}
           >
             <button
               type="button"
-              onClick={() => setClickedOpen((current) => !current)}
+              onClick={() => setDesktopClickOpen((current) => !current)}
               className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
-                featuresOpen
+                desktopFeaturesOpen
                   ? "bg-indigo-50 text-indigo-700 shadow-sm"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
               }`}
@@ -127,13 +161,13 @@ export default function Header() {
               Features
               <FaChevronDown
                 className={`text-[10px] transition-transform duration-200 ${
-                  featuresOpen ? "rotate-180" : ""
+                  desktopFeaturesOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
 
-            {featuresOpen && (
-              <div className="absolute left-1/2 top-full z-50 w-[340px] -translate-x-1/2 pt-2.5">
+            {desktopFeaturesOpen && (
+              <div className="absolute left-1/2 top-full z-[100] w-[340px] -translate-x-1/2 pt-2.5">
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_18px_55px_rgba(15,23,42,0.16)]">
                   <div className="px-2.5 pb-2.5 pt-1.5">
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -150,12 +184,12 @@ export default function Header() {
                           key={feature.title}
                           to={feature.to}
                           onClick={() => {
-                            setClickedOpen(false);
-                            setHoverOpen(false);
+                            setDesktopClickOpen(false);
+                            setDesktopHoverOpen(false);
                           }}
-                          className="group flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition duration-150 hover:bg-indigo-50"
+                          className="group flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition hover:bg-indigo-50"
                         >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-indigo-600 transition group-hover:bg-white group-hover:shadow-sm">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-indigo-600">
                             <Icon className="text-[15px]" />
                           </div>
 
@@ -163,6 +197,7 @@ export default function Header() {
                             <p className="text-sm font-bold text-slate-800 group-hover:text-indigo-700">
                               {feature.title}
                             </p>
+
                             <p className="mt-0.5 text-xs leading-5 text-slate-500">
                               {feature.description}
                             </p>
@@ -175,8 +210,8 @@ export default function Header() {
                   <NavLink
                     to="/features"
                     onClick={() => {
-                      setClickedOpen(false);
-                      setHoverOpen(false);
+                      setDesktopClickOpen(false);
+                      setDesktopHoverOpen(false);
                     }}
                     className="mt-2.5 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
                   >
@@ -188,6 +223,7 @@ export default function Header() {
             )}
           </div>
 
+          {/* ABOUT */}
           <NavLink to="/about" className={navClass}>
             <span className="inline-flex items-center gap-2">
               <FaUserGroup className="text-[12px]" />
@@ -195,100 +231,152 @@ export default function Header() {
             </span>
           </NavLink>
         </nav>
-        {/* MOBILE BUTTON */}
-        <button
-          type="button"
-          onClick={() => setMobileOpen((current) => !current)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm md:hidden"
-          aria-label="Open navigation"
-        >
-          {mobileOpen ? <FaXmark /> : <FaBars />}
-        </button>
-      </div>
-      {/* MOBILE MENU */}
-      {mobileOpen && (
-        <div className="border-t border-slate-200 bg-white px-4 pb-4 pt-3 md:hidden">
-          <div className="space-y-1">
-            <NavLink
-              to="/"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 rounded-xl px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              <FaHouse className="text-sm" />
-              Home
-            </NavLink>
 
-            <NavLink
-              to="/how-it-works"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-xl px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              How It Works
-            </NavLink>
+        {/* ================= MOBILE ================= */}
 
-            <NavLink
-              to="/why-assigncraft"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-xl px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Why AssignCraft
-            </NavLink>
+        <div ref={mobileMenuRef} className="relative md:hidden">
+          {/* HAMBURGER */}
+          <button
+            type="button"
+            onClick={() => {
+              setMobileOpen((current) => !current);
 
-            <div className="overflow-hidden rounded-xl border border-slate-200">
-              <button
-                type="button"
-                onClick={() => setClickedOpen((current) => !current)}
-                className="flex w-full items-center justify-between px-4 py-3 font-semibold text-slate-700"
+              if (mobileOpen) {
+                setMobileFeaturesOpen(false);
+              }
+            }}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg text-slate-700 shadow-sm transition active:scale-95"
+            aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
+          >
+            {mobileOpen ? <FaXmark /> : <FaBars />}
+          </button>
+
+          {/* MOBILE MENU */}
+          {mobileOpen && (
+            <div className="absolute right-0 top-[calc(100%+12px)] z-[200] w-[min(330px,calc(100vw-24px))] max-h-[calc(100vh-90px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_20px_60px_rgba(15,23,42,0.20)]">
+              {/* HOME */}
+              <NavLink
+                to="/"
+                end
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
               >
-                Features
-                <FaChevronDown
-                  className={`text-xs transition-transform ${
-                    clickedOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {clickedOpen && (
-                <div className="space-y-1 border-t border-slate-200 p-2">
-                  {featureItems.map((feature) => {
-                    const Icon = feature.icon;
-
-                    return (
-                      <NavLink
-                        key={feature.title}
-                        to={feature.to}
-                        onClick={() => {
-                          setClickedOpen(false);
-                          setMobileOpen(false);
-                        }}
-                        className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-indigo-50"
-                      >
-                        <Icon className="text-indigo-600" />
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">
-                            {feature.title}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {feature.description}
-                          </p>
-                        </div>
-                      </NavLink>
-                    );
-                  })}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaHouse />
                 </div>
-              )}
-            </div>
+                Home
+              </NavLink>
 
-            <NavLink
-              to="/about"
-              onClick={() => setMobileOpen(false)}
-              className="block rounded-xl px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              About Us
-            </NavLink>
-          </div>
+              {/* HOW IT WORKS */}
+              <NavLink
+                to="/how-it-works"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaCircleInfo />
+                </div>
+                How It Works
+              </NavLink>
+
+              {/* WHY ASSIGNCRAFT */}
+              <NavLink
+                to="/why-assigncraft"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaBolt />
+                </div>
+                Why AssignCraft
+              </NavLink>
+
+              {/* MOBILE FEATURES */}
+              <div className="mt-1">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+
+                    setMobileFeaturesOpen((current) => !current);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                    mobileFeaturesOpen
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                      <FaWandMagicSparkles />
+                    </span>
+                    Features
+                  </span>
+
+                  <FaChevronDown
+                    className={`mr-1 text-xs transition-transform duration-200 ${
+                      mobileFeaturesOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                {/* MOBILE FEATURE ITEMS */}
+                {mobileFeaturesOpen && (
+                  <div className="ml-5 mt-2 space-y-1 border-l-2 border-indigo-100 pl-3">
+                    {featureItems.map((feature) => {
+                      const Icon = feature.icon;
+
+                      return (
+                        <NavLink
+                          key={feature.title}
+                          to={feature.to}
+                          onClick={closeMobileMenu}
+                          className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition hover:bg-indigo-50"
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-sm text-violet-600">
+                            <Icon />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-slate-800">
+                              {feature.title}
+                            </p>
+
+                            <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                              {feature.description}
+                            </p>
+                          </div>
+                        </NavLink>
+                      );
+                    })}
+
+                    <NavLink
+                      to="/features"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50"
+                    >
+                      View All Features
+                      <FaArrowRightLong className="text-[10px]" />
+                    </NavLink>
+                  </div>
+                )}
+              </div>
+
+              {/* ABOUT */}
+              <NavLink
+                to="/about"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaUserGroup />
+                </div>
+                About Us
+              </NavLink>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </header>
   );
 }

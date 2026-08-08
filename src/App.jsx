@@ -5,12 +5,14 @@ import HowItWorksPage from "./pages/HowItWorksPage";
 import WhyAssignCraftPage from "./pages/WhyAssignCraftPage";
 import FeaturesPage from "./pages/FeaturesPage";
 import AboutPage from "./pages/AboutPage";
+import ContinueAssignmentPage from "./pages/ContinueAssignmentPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/continue-assignment" element={<ContinueAssignmentPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/why-assigncraft" element={<WhyAssignCraftPage />} />
         <Route path="/features" element={<FeaturesPage />} />

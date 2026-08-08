@@ -141,6 +141,13 @@ export default function Header() {
             </span>
           </NavLink>
 
+          <NavLink to="/continue-assignment" className={navClass}>
+            <span className="inline-flex items-center gap-2">
+              <FaFileArrowUp className="text-[12px]" />
+              Merge Assignment
+            </span>
+          </NavLink>
+
           {/* DESKTOP FEATURES */}
           <div
             ref={desktopFeatureRef}
@@ -277,6 +284,16 @@ export default function Header() {
                   <FaCircleInfo />
                 </div>
                 How It Works
+              </NavLink>
+              <NavLink
+                to="/continue-assignment"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaFileArrowUp />
+                </div>
+                Merge Assignment
               </NavLink>
 
               {/* WHY ASSIGNCRAFT */}

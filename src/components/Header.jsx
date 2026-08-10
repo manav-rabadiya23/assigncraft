@@ -15,7 +15,6 @@ import {
   FaCircleInfo,
   FaBolt,
   FaUserGroup,
-  FaRightLeft,
 } from "react-icons/fa6";
 
 const featureItems = [
@@ -213,13 +212,6 @@ export default function Header() {
             </span>
           </NavLink>
 
-          <NavLink to="/converter" className={navClass}>
-            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
-              <FaRightLeft className="text-[12px]" />
-              Converter
-            </span>
-          </NavLink>
-
           <NavLink to="/jupyter-tools" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaListCheck className="text-[12px]" />
@@ -357,17 +349,6 @@ export default function Header() {
                   <FaFileArrowUp />
                 </div>
                 Merge Assignment
-              </NavLink>
-
-              <NavLink
-                to="/converter"
-                onClick={closeMobileMenu}
-                className={mobileNavClass}
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                  <FaRightLeft />
-                </div>
-                Converter
               </NavLink>
 
               <NavLink

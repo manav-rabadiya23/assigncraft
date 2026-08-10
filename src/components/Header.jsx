@@ -15,6 +15,7 @@ import {
   FaCircleInfo,
   FaBolt,
   FaUserGroup,
+  FaRightLeft,
 } from "react-icons/fa6";
 
 const featureItems = [
@@ -83,7 +84,7 @@ export default function Header() {
   };
 
   const navClass = ({ isActive }) =>
-    `rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
+    `whitespace-nowrap rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 xl:px-3 xl:text-sm ${
       isActive
         ? "bg-indigo-50 text-indigo-700 shadow-sm"
         : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
@@ -97,31 +98,31 @@ export default function Header() {
     }`;
 
   return (
-    <header className="relative z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-5">
-        <NavLink to="/" className="group min-w-0" onClick={closeMobileMenu}>
-          <p className="truncate font-serif text-[14px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600 sm:text-[17px]">
+    <header className="sticky top-0 z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
+      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-2.5 sm:px-6 xl:px-8">
+        <NavLink to="/" className="group shrink-0" onClick={closeMobileMenu}>
+          <p className="whitespace-nowrap font-serif text-[14px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600 lg:text-[15px] xl:text-[16px]">
             From Questions to Document
           </p>
         </NavLink>
 
-        <nav className="hidden items-center gap-1.5 md:flex">
+        <nav className="hidden min-w-0 items-center gap-0.5 lg:flex xl:gap-1">
           <NavLink to="/" end className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaHouse className="text-[12px]" />
               Home
             </span>
           </NavLink>
 
           <NavLink to="/how-it-works" className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaCircleInfo className="text-[12px]" />
               How It Works
             </span>
           </NavLink>
 
           <NavLink to="/why-assigncraft" className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaBolt className="text-[12px]" />
               Why AssignCraft
             </span>
@@ -136,7 +137,7 @@ export default function Header() {
             <button
               type="button"
               onClick={() => setDesktopClickOpen((current) => !current)}
-              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-all duration-200 ${
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 xl:gap-2 xl:px-3 xl:text-sm ${
                 desktopFeaturesOpen
                   ? "bg-indigo-50 text-indigo-700 shadow-sm"
                   : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
@@ -206,28 +207,35 @@ export default function Header() {
           </div>
 
           <NavLink to="/continue-assignment" className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaFileArrowUp className="text-[12px]" />
               Merge Assignment
             </span>
           </NavLink>
 
+          <NavLink to="/converter" className={navClass}>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
+              <FaRightLeft className="text-[12px]" />
+              Converter
+            </span>
+          </NavLink>
+
           <NavLink to="/jupyter-tools" className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaListCheck className="text-[12px]" />
               Jupyter Tools
             </span>
           </NavLink>
 
           <NavLink to="/about" className={navClass}>
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaUserGroup className="text-[12px]" />
               About Us
             </span>
           </NavLink>
         </nav>
 
-        <div ref={mobileMenuRef} className="relative md:hidden">
+        <div ref={mobileMenuRef} className="relative lg:hidden">
           <button
             type="button"
             onClick={() => {
@@ -242,21 +250,34 @@ export default function Header() {
 
           {mobileOpen && (
             <div className="absolute right-0 top-[calc(100%+12px)] z-[200] w-[min(330px,calc(100vw-24px))] max-h-[calc(100vh-90px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_20px_60px_rgba(15,23,42,0.20)]">
-              <NavLink to="/" end onClick={closeMobileMenu} className={mobileNavClass}>
+              <NavLink
+                to="/"
+                end
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <FaHouse />
                 </div>
                 Home
               </NavLink>
 
-              <NavLink to="/how-it-works" onClick={closeMobileMenu} className={mobileNavClass}>
+              <NavLink
+                to="/how-it-works"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <FaCircleInfo />
                 </div>
                 How It Works
               </NavLink>
 
-              <NavLink to="/why-assigncraft" onClick={closeMobileMenu} className={mobileNavClass}>
+              <NavLink
+                to="/why-assigncraft"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <FaBolt />
                 </div>
@@ -339,6 +360,17 @@ export default function Header() {
               </NavLink>
 
               <NavLink
+                to="/converter"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaRightLeft />
+                </div>
+                Converter
+              </NavLink>
+
+              <NavLink
                 to="/jupyter-tools"
                 onClick={closeMobileMenu}
                 className={mobileNavClass}
@@ -349,7 +381,11 @@ export default function Header() {
                 Jupyter Tools
               </NavLink>
 
-              <NavLink to="/about" onClick={closeMobileMenu} className={mobileNavClass}>
+              <NavLink
+                to="/about"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                   <FaUserGroup />
                 </div>

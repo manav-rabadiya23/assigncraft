@@ -7,6 +7,7 @@ import FeaturesPage from "./pages/FeaturesPage";
 import AboutPage from "./pages/AboutPage";
 import ContinueAssignmentPage from "./pages/ContinueAssignmentPage";
 import JupyterToolsPage from "./pages/JupyterToolsPage";
+import ConverterPage from "./pages/ConverterPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/continue-assignment" element={<ContinueAssignmentPage />} />
         <Route path="/jupyter-tools" element={<JupyterToolsPage />} />
+        <Route path="/converter" element={<ConverterPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/why-assigncraft" element={<WhyAssignCraftPage />} />
         <Route path="/features" element={<FeaturesPage />} />

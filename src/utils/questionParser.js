@@ -128,7 +128,7 @@ function parseExplicitMarker(line) {
 
 function parseNumberedMarker(line) {
   const cleanLine = normalizeLine(line);
-  const match = cleanLine.match(/^(\d{1,3})\s*[.)\-:]\s+(.+)$/);
+  const match = cleanLine.match(/^(\d{1,3})\s*(?:[)\-:]\s*|\.(?!\d)\s*)(.+)$/);
 
   if (!match) {
     return null;
@@ -162,7 +162,9 @@ function isLikelyBulletQuestion(line) {
 }
 
 function stripBullet(line) {
-  return normalizeLine(line).replace(/^[•●▪◦*-]\s+/, "").trim();
+  return normalizeLine(line)
+    .replace(/^[•●▪◦*-]\s+/, "")
+    .trim();
 }
 
 function questionVerbStart(line) {
@@ -196,7 +198,12 @@ function cleanDetectedQuestions(questions) {
     });
 }
 
-function calculateConfidence({ markerCount, questionCount, usedFallback, format }) {
+function calculateConfidence({
+  markerCount,
+  questionCount,
+  usedFallback,
+  format,
+}) {
   if (!questionCount) return 0;
 
   if (!usedFallback && markerCount === questionCount) {
@@ -266,9 +273,7 @@ export function detectQuestions(text) {
       if (!questionStarted) continue;
       if (shouldIgnoreLine(line)) continue;
 
-      currentQuestion = currentQuestion
-        ? `${currentQuestion} ${line}`
-        : line;
+      currentQuestion = currentQuestion ? `${currentQuestion} ${line}` : line;
     }
 
     if (currentQuestion.trim()) {

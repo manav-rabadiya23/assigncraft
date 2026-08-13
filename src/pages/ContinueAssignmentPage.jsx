@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import Header from "../components/Header";
 import SiteFooter from "../components/SiteFooter";
-import QuestionsSection from "../components/QuestionsSection";
 import { extractTextFromDocx } from "../utils/docxExtractor";
 import { extractTextFromPdf } from "../utils/pdfExtractor";
 import { detectQuestions } from "../utils/questionParser";
 import {
+  compareTeacherQuestionsWithCompletedAssignment,
   generateContinuedAssignment,
   inspectCompletedAssignment,
 } from "../utils/continueAssignmentGenerator";
@@ -17,11 +17,13 @@ function makeFileLabel(file) {
 
 export default function ContinueAssignmentPage() {
   const [completedFile, setCompletedFile] = useState(null);
+  const [completedInspection, setCompletedInspection] = useState(null);
   const [lastQuestionNumber, setLastQuestionNumber] = useState(null);
   const [existingMediaCount, setExistingMediaCount] = useState(0);
 
   const [newQuestionsFile, setNewQuestionsFile] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [comparison, setComparison] = useState(null);
 
   const [isReadingOld, setIsReadingOld] = useState(false);
   const [isReadingNew, setIsReadingNew] = useState(false);
@@ -34,8 +36,12 @@ export default function ContinueAssignmentPage() {
     const file = event.target.files?.[0] || null;
 
     setCompletedFile(null);
+    setCompletedInspection(null);
     setLastQuestionNumber(null);
     setExistingMediaCount(0);
+    setNewQuestionsFile(null);
+    setQuestions([]);
+    setComparison(null);
     setMessage("");
 
     if (!file) return;
@@ -46,11 +52,12 @@ export default function ContinueAssignmentPage() {
       const inspection = await inspectCompletedAssignment(file);
 
       setCompletedFile(file);
+      setCompletedInspection(inspection);
       setLastQuestionNumber(inspection.lastQuestionNumber);
       setExistingMediaCount(inspection.mediaCount);
 
       setMessage(
-        `Completed assignment loaded. Last question detected: Q-${inspection.lastQuestionNumber}. Existing images found: ${inspection.mediaCount}.`,
+        `Completed assignment loaded. ${inspection.questionCount} existing question(s) found. Last question: Q-${inspection.lastQuestionNumber}. Existing images: ${inspection.mediaCount}.`,
       );
     } catch (error) {
       console.error(error);
@@ -66,14 +73,21 @@ export default function ContinueAssignmentPage() {
 
     setNewQuestionsFile(null);
     setQuestions([]);
+    setComparison(null);
     setMessage("");
 
     if (!file) return;
 
+    if (!completedFile || !completedInspection) {
+      setMessage("Step 1: Upload your completed assignment Word file first.");
+      event.target.value = "";
+      return;
+    }
+
     const extension = file.name.split(".").pop()?.toLowerCase();
 
     if (!["pdf", "docx"].includes(extension)) {
-      setMessage("New questions must be a PDF or DOCX file.");
+      setMessage("Teacher question file must be a PDF or DOCX file.");
       event.target.value = "";
       return;
     }
@@ -91,28 +105,35 @@ export default function ContinueAssignmentPage() {
       }
 
       const detected = detectQuestions(text);
-      const newQuestions = detected.questions || [];
+      const teacherQuestions = detected.questions || [];
 
-      if (!newQuestions.length) {
+      if (!teacherQuestions.length) {
         throw new Error(
-          "The new file was read, but no questions were detected. Please check the file.",
+          "The teacher file was read, but no questions were detected. Please check the file.",
         );
       }
 
-      setNewQuestionsFile(file);
-      setQuestions(newQuestions);
-
-      const firstNumber =
-        Number.isInteger(lastQuestionNumber) && lastQuestionNumber >= 0
-          ? lastQuestionNumber + 1
-          : "?";
-
-      setMessage(
-        `${newQuestions.length} new question(s) detected. They will start from Q-${firstNumber}.`,
+      const result = compareTeacherQuestionsWithCompletedAssignment(
+        completedInspection,
+        teacherQuestions,
       );
+
+      setNewQuestionsFile(file);
+      setComparison(result);
+      setQuestions(result.newQuestions);
+
+      if (result.newQuestionCount === 0) {
+        setMessage(
+          `${result.totalTeacherQuestions} question(s) detected. ${result.duplicateCount} already exist in your completed Word assignment and were skipped. No new questions were found.`,
+        );
+      } else {
+        setMessage(
+          `${result.totalTeacherQuestions} question(s) detected. ${result.duplicateCount} existing question(s) skipped. ${result.newQuestionCount} new question(s) will be added from Q-${lastQuestionNumber + 1}.`,
+        );
+      }
     } catch (error) {
       console.error(error);
-      setMessage(error.message || "Unable to read the new questions file.");
+      setMessage(error.message || "Unable to read the teacher question file.");
       event.target.value = "";
     } finally {
       setIsReadingNew(false);
@@ -153,30 +174,28 @@ export default function ContinueAssignmentPage() {
     });
   };
 
-  const reorderQuestion = (sourceIndex, targetIndex) => {
-    setQuestions((current) => {
-      const next = [...current];
-      const [moved] = next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, moved);
-      return next;
-    });
-  };
-
   const generate = async () => {
     if (!completedFile) {
       setMessage("Step 1: Upload your completed assignment Word file.");
       return;
     }
 
-    if (!newQuestionsFile || !questions.some((question) => question.trim())) {
-      setMessage("Step 2: Upload the teacher's new questions file.");
+    if (!newQuestionsFile) {
+      setMessage("Step 2: Upload the teacher's latest PDF or DOCX file.");
+      return;
+    }
+
+    if (!questions.some((question) => question.trim())) {
+      setMessage(
+        "No new questions are available to add. Existing duplicate questions were already skipped.",
+      );
       return;
     }
 
     try {
       setIsGenerating(true);
       setMessage(
-        `Creating final document. Q-1 to Q-${lastQuestionNumber} will not be rebuilt.`,
+        `Creating final document. Existing Q-1 to Q-${lastQuestionNumber} will stay unchanged.`,
       );
 
       await generateContinuedAssignment({
@@ -186,22 +205,22 @@ export default function ContinueAssignmentPage() {
       });
 
       setMessage(
-        `Done. Existing Q-1 to Q-${lastQuestionNumber}, including their code and images, were kept. New questions were appended from Q-${lastQuestionNumber + 1}.`,
+        `Done. Existing Q-1 to Q-${lastQuestionNumber}, including code, output, images and formatting, were preserved. ${questions.filter((question) => question.trim()).length} new question(s) were added from Q-${lastQuestionNumber + 1}.`,
       );
     } catch (error) {
       console.error(error);
-      setMessage(error.message || "Unable to generate the continued assignment.");
+      setMessage(
+        error.message || "Unable to generate the continued assignment.",
+      );
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const displayStartNumber =
-    Number.isInteger(lastQuestionNumber) ? lastQuestionNumber + 1 : 1;
+  const displayStartNumber = Number.isInteger(lastQuestionNumber)
+    ? lastQuestionNumber + 1
+    : 1;
 
-  // QuestionsSection normally displays Question 1, 2, 3...
-  // For continuation we wrap the question text with the actual future number
-  // only in this page's review heading below. The generated DOCX uses Q-13 etc.
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <Header />
@@ -215,8 +234,9 @@ export default function ContinueAssignmentPage() {
             Continue Assignment
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-indigo-100">
-            Keep your completed Word assignment unchanged and append only the
-            teacher&apos;s new questions.
+            Upload your completed Word assignment and the teacher&apos;s latest
+            question file. AssignCraft skips repeated questions and adds only
+            the new ones.
           </p>
         </div>
       </header>
@@ -230,8 +250,8 @@ export default function ContinueAssignmentPage() {
             <div>
               <h2 className="text-xl font-bold">Upload Completed Assignment</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Upload the DOCX that already contains your old questions,
-                code and output screenshots. AssignCraft will NOT regenerate it.
+                Upload the DOCX that already contains your completed questions,
+                code and outputs. AssignCraft will not rebuild this document.
               </p>
             </div>
           </div>
@@ -256,9 +276,11 @@ export default function ContinueAssignmentPage() {
 
           {completedFile && Number.isInteger(lastQuestionNumber) && (
             <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              <b>Ready:</b> Last existing question is Q-{lastQuestionNumber}.
+              <b>Ready:</b> {completedInspection?.questionCount || 0} existing
+              question(s) found. Last existing question is Q-
+              {lastQuestionNumber}.
               {existingMediaCount > 0
-                ? ` ${existingMediaCount} existing image(s) were found and will stay in the DOCX.`
+                ? ` ${existingMediaCount} existing image(s) will remain unchanged.`
                 : ""}
             </div>
           )}
@@ -270,43 +292,78 @@ export default function ContinueAssignmentPage() {
               2
             </div>
             <div>
-              <h2 className="text-xl font-bold">Upload New Questions</h2>
+              <h2 className="text-xl font-bold">
+                Upload Teacher&apos;s Latest Questions
+              </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Upload only the teacher&apos;s new PDF or DOCX question file.
-                Only this file is passed through question detection.
+                The PDF/DOCX may contain old and new questions together.
+                AssignCraft will detect the repeated questions and skip them.
               </p>
             </div>
           </div>
 
-          <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-violet-300 bg-violet-50/60 p-7 text-center">
+          <label
+            className={`block rounded-2xl border-2 border-dashed p-7 text-center ${
+              completedFile
+                ? "cursor-pointer border-violet-300 bg-violet-50/60"
+                : "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
+            }`}
+          >
             <input
               type="file"
               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="hidden"
-              disabled={
-                !completedFile || isReadingNew || isGenerating
-              }
+              disabled={!completedFile || isReadingNew || isGenerating}
               onChange={chooseNewQuestionsFile}
             />
             <div className="font-bold text-violet-700">
               {!completedFile
                 ? "Upload Step 1 first"
                 : isReadingNew
-                  ? "Reading new questions..."
-                  : "Choose New PDF / DOCX"}
+                  ? "Reading and comparing questions..."
+                  : "Choose Latest PDF / DOCX"}
             </div>
             <div className="mt-2 text-sm text-slate-500">
               {makeFileLabel(newQuestionsFile)}
             </div>
           </label>
+
+          {comparison && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <div className="text-xl font-bold text-slate-900">
+                  {comparison.totalTeacherQuestions}
+                </div>
+                <div className="text-xs text-slate-500">
+                  Questions in teacher file
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-amber-50 p-4">
+                <div className="text-xl font-bold text-amber-800">
+                  {comparison.duplicateCount}
+                </div>
+                <div className="text-xs text-amber-700">Existing / skipped</div>
+              </div>
+
+              <div className="rounded-xl bg-emerald-50 p-4">
+                <div className="text-xl font-bold text-emerald-800">
+                  {comparison.newQuestionCount}
+                </div>
+                <div className="text-xs text-emerald-700">
+                  New questions to add
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {questions.length > 0 && (
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
             <h2 className="text-xl font-bold">Verify New Questions</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {questions.length} new question(s). In the final Word file they
-              will be numbered Q-{displayStartNumber} to Q-
+              Only questions that are not already in your completed assignment
+              are shown here. They will be numbered Q-{displayStartNumber} to Q-
               {displayStartNumber + questions.length - 1}.
             </p>
 
@@ -314,6 +371,9 @@ export default function ContinueAssignmentPage() {
               {questions.map((question, index) => (
                 <div
                   key={index}
+                  ref={(element) => {
+                    questionRefs.current[index] = element;
+                  }}
                   className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
                 >
                   <div className="mb-2 font-bold text-indigo-700">
@@ -372,6 +432,13 @@ export default function ContinueAssignmentPage() {
           </section>
         )}
 
+        {comparison && comparison.newQuestionCount === 0 && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+            All detected questions already exist in your completed assignment.
+            Nothing needs to be added.
+          </div>
+        )}
+
         {message && (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 shadow">
             {message}
@@ -395,9 +462,9 @@ export default function ContinueAssignmentPage() {
         </button>
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <b>Important:</b> Step 1 is never converted into questions. Its
-          existing code, screenshots, tables and formatting stay inside the
-          original DOCX package. Only Step 2 is parsed.
+          <b>Important:</b> The completed DOCX is preserved as-is. AssignCraft
+          compares the teacher&apos;s latest questions with the existing
+          assignment, skips duplicates, and appends only the new questions.
         </div>
       </main>
 

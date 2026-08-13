@@ -6,6 +6,7 @@ import { extractTextFromPdf } from "../utils/pdfExtractor";
 import { detectQuestions } from "../utils/questionParser";
 import {
   cleanNotebookQuestion,
+  compareTeacherQuestionsWithNotebook,
   continuePythonNotebook,
   createPythonNotebook,
   downloadNotebook,
@@ -62,7 +63,8 @@ function QuestionReview({
       <div className="mb-5">
         <h2 className="text-xl font-bold text-slate-900">Verify Questions</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Each question becomes a Markdown cell followed by a blank Python code cell.
+          Each question becomes a Markdown cell followed by a blank Python code
+          cell.
         </p>
       </div>
 
@@ -128,6 +130,7 @@ export default function JupyterToolsPage() {
   const [oldNotebookInfo, setOldNotebookInfo] = useState(null);
   const [continueQuestionFile, setContinueQuestionFile] = useState(null);
   const [continueQuestions, setContinueQuestions] = useState([]);
+  const [continueComparison, setContinueComparison] = useState(null);
 
   const [pdfNotebookFile, setPdfNotebookFile] = useState(null);
   const [pdfNotebook, setPdfNotebook] = useState(null);
@@ -153,7 +156,10 @@ export default function JupyterToolsPage() {
 
     try {
       setIsReading(true);
-      const questions = await extractQuestionsFromTeacherFile(file, setProgress);
+      const questions = await extractQuestionsFromTeacherFile(
+        file,
+        setProgress,
+      );
       setCreateFile(file);
       setCreateQuestions(questions);
       setMessage(`${questions.length} question(s) detected successfully.`);
@@ -174,6 +180,7 @@ export default function JupyterToolsPage() {
     setOldNotebookInfo(null);
     setContinueQuestionFile(null);
     setContinueQuestions([]);
+    setContinueComparison(null);
     resetMessages();
 
     if (!file) return;
@@ -209,6 +216,7 @@ export default function JupyterToolsPage() {
     const file = event.target.files?.[0] || null;
     setContinueQuestionFile(null);
     setContinueQuestions([]);
+    setContinueComparison(null);
     resetMessages();
 
     if (!file) return;
@@ -221,15 +229,32 @@ export default function JupyterToolsPage() {
 
     try {
       setIsReading(true);
-      const questions = await extractQuestionsFromTeacherFile(file, setProgress);
+      setProgress("Reading latest teacher question file...");
+
+      const questions = await extractQuestionsFromTeacherFile(
+        file,
+        setProgress,
+      );
+      const comparison = compareTeacherQuestionsWithNotebook(
+        oldNotebook,
+        questions,
+      );
+
       setContinueQuestionFile(file);
-      setContinueQuestions(questions);
+      setContinueComparison(comparison);
+      setContinueQuestions(comparison.newQuestions);
 
       const first = (oldNotebookInfo?.lastQuestionNumber || 0) + 1;
 
-      setMessage(
-        `${questions.length} new question(s) detected. They will start from Question ${first}.`,
-      );
+      if (comparison.newQuestionCount === 0) {
+        setMessage(
+          `${comparison.totalTeacherQuestions} question(s) found. ${comparison.duplicateCount} already exist in your notebook. No new questions were found, so nothing will be added.`,
+        );
+      } else {
+        setMessage(
+          `${comparison.totalTeacherQuestions} question(s) found. ${comparison.duplicateCount} already exist and were skipped. ${comparison.newQuestionCount} new question(s) will be added starting from Question ${first}.`,
+        );
+      }
     } catch (error) {
       console.error(error);
       setMessage(error.message || "Unable to read the new questions.");
@@ -367,8 +392,7 @@ export default function JupyterToolsPage() {
     }
   };
 
-  const continueStartNumber =
-    (oldNotebookInfo?.lastQuestionNumber || 0) + 1;
+  const continueStartNumber = (oldNotebookInfo?.lastQuestionNumber || 0) + 1;
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
@@ -401,7 +425,9 @@ export default function JupyterToolsPage() {
             }`}
           >
             <div className="font-bold">1. Create Notebook</div>
-            <div className={`mt-1 text-sm ${mode === "create" ? "text-indigo-100" : "text-slate-500"}`}>
+            <div
+              className={`mt-1 text-sm ${mode === "create" ? "text-indigo-100" : "text-slate-500"}`}
+            >
               PDF/DOCX → .ipynb
             </div>
           </button>
@@ -419,8 +445,10 @@ export default function JupyterToolsPage() {
             }`}
           >
             <div className="font-bold">2. Continue Notebook</div>
-            <div className={`mt-1 text-sm ${mode === "continue" ? "text-violet-100" : "text-slate-500"}`}>
-              Old .ipynb + new questions
+            <div
+              className={`mt-1 text-sm ${mode === "continue" ? "text-violet-100" : "text-slate-500"}`}
+            >
+              Old .ipynb + latest assignment
             </div>
           </button>
 
@@ -437,7 +465,9 @@ export default function JupyterToolsPage() {
             }`}
           >
             <div className="font-bold">3. Notebook to PDF</div>
-            <div className={`mt-1 text-sm ${mode === "pdf" ? "text-slate-300" : "text-slate-500"}`}>
+            <div
+              className={`mt-1 text-sm ${mode === "pdf" ? "text-slate-300" : "text-slate-500"}`}
+            >
               Completed .ipynb → PDF
             </div>
           </button>
@@ -448,7 +478,8 @@ export default function JupyterToolsPage() {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
               <h2 className="text-xl font-bold">Upload Teacher Questions</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Upload PDF or DOCX. AssignCraft will detect the questions and create a Python notebook.
+                Upload PDF or DOCX. AssignCraft will detect the questions and
+                create a Python notebook.
               </p>
 
               <label className="mt-5 block cursor-pointer rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/60 p-8 text-center">
@@ -502,7 +533,8 @@ export default function JupyterToolsPage() {
                 </span>
                 <h2 className="mt-3 text-xl font-bold">Upload Old Notebook</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Existing Markdown, Python code and saved outputs remain unchanged.
+                  Existing Markdown, Python code and saved outputs remain
+                  unchanged.
                 </p>
               </div>
 
@@ -551,15 +583,18 @@ export default function JupyterToolsPage() {
                 </span>
                 <h2 className="mt-3 text-xl font-bold">Upload New Questions</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Upload the teacher&apos;s new PDF or DOCX question file.
+                  Upload the latest teacher PDF or DOCX. Old questions are
+                  detected and skipped automatically.
                 </p>
               </div>
 
-              <label className={`block rounded-2xl border-2 border-dashed p-8 text-center ${
-                oldNotebook
-                  ? "cursor-pointer border-violet-300 bg-violet-50/60"
-                  : "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
-              }`}>
+              <label
+                className={`block rounded-2xl border-2 border-dashed p-8 text-center ${
+                  oldNotebook
+                    ? "cursor-pointer border-violet-300 bg-violet-50/60"
+                    : "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
+                }`}
+              >
                 <input
                   type="file"
                   accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -575,7 +610,8 @@ export default function JupyterToolsPage() {
                       : "Choose New PDF / DOCX"}
                 </div>
                 <div className="mt-2 text-sm text-slate-500">
-                  {continueQuestionFile?.name || "No new question file selected"}
+                  {continueQuestionFile?.name ||
+                    "No new question file selected"}
                 </div>
                 {progress && (
                   <div className="mt-3 text-xs font-semibold text-slate-600">
@@ -583,6 +619,44 @@ export default function JupyterToolsPage() {
                   </div>
                 )}
               </label>
+
+              {continueComparison && (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <div className="text-2xl font-bold text-slate-900">
+                      {continueComparison.totalTeacherQuestions}
+                    </div>
+                    <div className="text-xs font-medium text-slate-500">
+                      Questions in latest file
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-amber-50 p-4">
+                    <div className="text-2xl font-bold text-amber-800">
+                      {continueComparison.duplicateCount}
+                    </div>
+                    <div className="text-xs font-medium text-amber-700">
+                      Already in notebook — skipped
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-emerald-50 p-4">
+                    <div className="text-2xl font-bold text-emerald-800">
+                      {continueComparison.newQuestionCount}
+                    </div>
+                    <div className="text-xs font-medium text-emerald-700">
+                      New questions to add
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {continueComparison?.newQuestionCount === 0 && (
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+                  Your notebook already contains all questions from this file.
+                  No duplicate questions will be added.
+                </div>
+              )}
             </section>
 
             <QuestionReview
@@ -610,7 +684,8 @@ export default function JupyterToolsPage() {
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
               <h2 className="text-xl font-bold">Upload Completed Notebook</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Upload a completed .ipynb file. Markdown, Python code and saved outputs will be added to the PDF.
+                Upload a completed .ipynb file. Markdown, Python code and saved
+                outputs will be added to the PDF.
               </p>
 
               <label className="mt-5 block cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-slate-500">
@@ -623,7 +698,9 @@ export default function JupyterToolsPage() {
                 />
 
                 <div className="font-bold text-slate-800">
-                  {isReading ? "Reading Notebook..." : "Choose Completed .ipynb"}
+                  {isReading
+                    ? "Reading Notebook..."
+                    : "Choose Completed .ipynb"}
                 </div>
 
                 <div className="mt-2 text-sm text-slate-500">
@@ -671,7 +748,8 @@ export default function JupyterToolsPage() {
             )}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              The PDF includes Markdown text, Python code, text outputs and PNG/JPEG plot or image outputs saved inside the notebook.
+              The PDF includes Markdown text, Python code, text outputs and
+              PNG/JPEG plot or image outputs saved inside the notebook.
             </div>
           </>
         )}
@@ -683,9 +761,9 @@ export default function JupyterToolsPage() {
         )}
 
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <b>Notebook format:</b> Question = Markdown cell. Answer = Python
-          code cell. When continuing a notebook, old cells, code and stored
-          outputs are preserved.
+          <b>Notebook format:</b> Question = Markdown cell. Answer = Python code
+          cell. When continuing a notebook, old cells, code and stored outputs
+          are preserved.
         </div>
       </main>
 

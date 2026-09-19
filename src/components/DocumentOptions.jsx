@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { FaPen, FaPlus, FaTrash } from "react-icons/fa6";
+import {
+  FaArrowDown,
+  FaArrowUp,
+  FaPen,
+  FaPlus,
+  FaTrash,
+} from "react-icons/fa6";
 import { HEADER_FIELD_OPTIONS } from "../constants/defaults";
 
 export default function DocumentOptions({
@@ -7,6 +13,7 @@ export default function DocumentOptions({
   customDetails = [],
   onToggleHeader,
   onToggleHeaderField,
+  onReorderHeaderField,
   onTogglePageNumbers,
   onToggleCode,
   onToggleOutput,
@@ -18,6 +25,23 @@ export default function DocumentOptions({
   const [newSectionName, setNewSectionName] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState("");
+  const [draggedKey, setDraggedKey] = useState(null);
+
+  const moveField = (key, direction, orderedKeys) => {
+    const currentIndex = orderedKeys.indexOf(key);
+    const newIndex = currentIndex + direction;
+
+    if (newIndex < 0 || newIndex >= orderedKeys.length) return;
+
+    const nextOrder = [...orderedKeys];
+
+    [nextOrder[currentIndex], nextOrder[newIndex]] = [
+      nextOrder[newIndex],
+      nextOrder[currentIndex],
+    ];
+
+    onReorderHeaderField(nextOrder);
+  };
 
   const addSection = () => {
     if (onAddCustomAnswerSection?.(newSectionName)) setNewSectionName("");
@@ -50,49 +74,107 @@ export default function DocumentOptions({
           Choose details to display
         </p>
         <p className="mb-4 text-xs text-slate-500">
-          These selected details appear once on the first page by default.
+          Select the details you want to show, then drag and drop them to change
+          their order.
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {HEADER_FIELD_OPTIONS.map((field) => (
-            <label
-              key={field.key}
-              className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700"
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(options.headerFields[field.key])}
-                onChange={() => onToggleHeaderField(field.key)}
-                className="h-4 w-4 accent-indigo-600"
-              />
-              {field.label}
-            </label>
-          ))}
-
-          {customDetails.map((field) => {
-            const fieldKey = `custom:${field.id}`;
-
-            return (
-              <label
-                key={fieldKey}
-                className="flex cursor-pointer items-center gap-2 text-sm font-medium text-violet-700"
-              >
-                <input
-                  type="checkbox"
-                  checked={Boolean(options.headerFields[fieldKey])}
-                  onChange={() => onToggleHeaderField(fieldKey)}
-                  className="h-4 w-4 accent-violet-600"
-                />
-                {field.label}
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
-                  Custom
-                </span>
-              </label>
+        <div className="space-y-2">
+          {(() => {
+            const availableFields = [
+              ...HEADER_FIELD_OPTIONS.map((field) => field.key),
+              ...customDetails.map((field) => `custom:${field.id}`),
+            ];
+            const fieldMap = new Map([
+              ...HEADER_FIELD_OPTIONS.map((field) => [field.key, field]),
+              ...customDetails.map((field) => [
+                `custom:${field.id}`,
+                { ...field, key: `custom:${field.id}`, custom: true },
+              ]),
+            ]);
+            const orderedKeys = [
+              ...(options.headerFieldOrder || []),
+              ...availableFields,
+            ].filter(
+              (key, index, list) =>
+                availableFields.includes(key) && list.indexOf(key) === index,
             );
-          })}
+            const handleDrop = (targetKey) => {
+              if (!draggedKey || draggedKey === targetKey) return;
+              const nextOrder = [...orderedKeys];
+              const fromIndex = nextOrder.indexOf(draggedKey);
+              const toIndex = nextOrder.indexOf(targetKey);
+              if (fromIndex < 0 || toIndex < 0) return;
+              nextOrder.splice(fromIndex, 1);
+              nextOrder.splice(toIndex, 0, draggedKey);
+              onReorderHeaderField(nextOrder);
+              setDraggedKey(null);
+            };
+            return orderedKeys.map((key) => {
+              const field = fieldMap.get(key);
+              if (!field) return null;
+              return (
+                <div
+                  key={key}
+                  draggable
+                  onDragStart={() => setDraggedKey(key)}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleDrop(key)}
+                  onDragEnd={() => setDraggedKey(null)}
+                  className={`flex cursor-grab items-center gap-3 rounded-xl border bg-white p-3 transition active:cursor-grabbing ${draggedKey === key ? "border-indigo-400 opacity-50 shadow-md" : "border-slate-200 hover:border-indigo-200 hover:shadow-sm"}`}
+                >
+                  <span
+                    className="select-none text-lg leading-none text-slate-400"
+                    title="Drag to reorder"
+                    aria-hidden="true"
+                  >
+                    ⋮⋮
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(options.headerFields[key])}
+                    onChange={() => onToggleHeaderField(key)}
+                    className={`h-4 w-4 ${field.custom ? "accent-violet-600" : "accent-indigo-600"}`}
+                  />
+                  <span
+                    className={`text-sm font-medium ${field.custom ? "text-violet-700" : "text-slate-700"}`}
+                  >
+                    {field.label}
+                  </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    {field.custom && (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-600">
+                        Custom
+                      </span>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => moveField(key, -1, orderedKeys)}
+                      disabled={orderedKeys.indexOf(key) === 0}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label={`Move ${field.label} up`}
+                    >
+                      <FaArrowUp className="text-xs" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => moveField(key, 1, orderedKeys)}
+                      disabled={
+                        orderedKeys.indexOf(key) === orderedKeys.length - 1
+                      }
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-30"
+                      aria-label={`Move ${field.label} down`}
+                    >
+                      <FaArrowDown className="text-xs" />
+                    </button>
+                  </div>
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
-
 
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p className="mb-1 text-sm font-bold text-slate-800">Answer format</p>
@@ -167,7 +249,9 @@ export default function DocumentOptions({
                   </div>
                 ) : (
                   <>
-                    <div className="font-bold text-slate-800">{section.label}</div>
+                    <div className="font-bold text-slate-800">
+                      {section.label}
+                    </div>
                     <div className="text-xs text-slate-500">
                       Custom blank section for every question.
                     </div>
@@ -227,7 +311,8 @@ export default function DocumentOptions({
             </button>
           </div>
           <p className="mt-2 text-xs text-slate-500">
-            Added sections are selected automatically. Uncheck a section if you do not want it in the document.
+            Added sections are selected automatically. Uncheck a section if you
+            do not want it in the document.
           </p>
         </div>
       </div>

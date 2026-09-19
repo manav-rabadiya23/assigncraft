@@ -108,6 +108,7 @@ function HomePage() {
         ...current.headerFields,
         [`custom:${id}`]: true,
       },
+      headerFieldOrder: [...(current.headerFieldOrder || []), `custom:${id}`],
     }));
 
     showMessage("success", `"${cleanLabel}" added to Assignment Details.`);
@@ -157,6 +158,7 @@ function HomePage() {
       return {
         ...current,
         headerFields: nextHeaderFields,
+        headerFieldOrder: (current.headerFieldOrder || []).filter((key) => key !== `custom:${id}`),
       };
     });
 
@@ -423,6 +425,10 @@ function HomePage() {
         [field]: !current.headerFields[field],
       },
     }));
+  };
+
+  const reorderHeaderField = (order) => {
+    setDocumentOptions((current) => ({ ...current, headerFieldOrder: order }));
   };
 
   const togglePageNumbers = () => {
@@ -712,6 +718,7 @@ function HomePage() {
           customDetails={customDetails}
           onToggleHeader={toggleHeader}
           onToggleHeaderField={toggleHeaderField}
+          onReorderHeaderField={reorderHeaderField}
           onTogglePageNumbers={togglePageNumbers}
           onToggleCode={toggleCode}
           onToggleOutput={toggleOutput}

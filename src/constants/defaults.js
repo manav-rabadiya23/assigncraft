@@ -19,6 +19,7 @@ export const DEFAULT_DOCUMENT_OPTIONS = {
   includeCode: true,
   includeOutput: true,
   customAnswerSections: [],
+  headerFieldOrder: ["fullName", "studentId", "division", "subject", "subjectCode", "courseName", "assignmentNumber"],
   headerFields: {
     fullName: true,
     studentId: true,

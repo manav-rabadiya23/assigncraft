@@ -12,47 +12,55 @@ function getCustomDetails(details) {
   return Array.isArray(details?.customDetails) ? details.customDetails : [];
 }
 
+export function getOrderedFields(details, options) {
+  const customDetails = getCustomDetails(details);
+  const fieldMap = new Map([
+    ...DETAIL_FIELD_DEFINITIONS.map((field) => [field.key, field]),
+    ...customDetails.map((item) => [
+      `custom:${item.id}`,
+      {
+        key: `custom:${item.id}`,
+        label: item.label,
+        custom: true,
+        value: item.value || "",
+      },
+    ]),
+  ]);
+  const defaultOrder = [
+    ...DETAIL_FIELD_DEFINITIONS.map(({ key }) => key),
+    ...customDetails.map((item) => `custom:${item.id}`),
+  ];
+  return [...(options?.headerFieldOrder || []), ...defaultOrder]
+    .filter(
+      (key, index, list) => fieldMap.has(key) && list.indexOf(key) === index,
+    )
+    .map((key) => fieldMap.get(key));
+}
+
 export function getSelectedDetailRows(details, options) {
   const fields = options?.headerFields || {};
-
-  const predefinedRows = DETAIL_FIELD_DEFINITIONS
-    .filter(({ key }) => Boolean(fields[key]))
-    .map(({ key, label }) => [label, details?.[key] || ""]);
-
-  const customRows = getCustomDetails(details)
-    .filter((item) => Boolean(fields[`custom:${item.id}`]))
-    .map((item) => [item.label, item.value || ""]);
-
-  return [...predefinedRows, ...customRows];
+  return getOrderedFields(details, options)
+    .filter((field) => Boolean(fields[field.key]))
+    .map((field) => [
+      field.label,
+      field.custom ? field.value || "" : details?.[field.key] || "",
+    ]);
 }
 
 export function getSelectedHeaderParts(details, options) {
   const fields = options?.headerFields || {};
-  const parts = [];
-
-  if (fields.fullName && details.fullName) parts.push(details.fullName);
-  if (fields.studentId && details.studentId) parts.push(details.studentId);
-  if (fields.division && details.division) {
-    parts.push(`Division ${details.division}`);
-  }
-  if (fields.subject && details.subject) parts.push(details.subject);
-  if (fields.subjectCode && details.subjectCode) {
-    parts.push(details.subjectCode);
-  }
-  if (fields.courseName && details.courseName) parts.push(details.courseName);
-  if (fields.assignmentNumber && details.assignmentNumber) {
-    parts.push(`Assignment ${details.assignmentNumber}`);
-  }
-
-  getCustomDetails(details)
-    .filter(
-      (item) =>
-        Boolean(fields[`custom:${item.id}`]) &&
-        (item.value || "").trim(),
-    )
-    .forEach((item) => {
-      parts.push(`${item.label}: ${item.value}`);
-    });
-
-  return parts;
+  return getOrderedFields(details, options)
+    .filter((field) => Boolean(fields[field.key]))
+    .reduce((parts, field) => {
+      const value = field.custom
+        ? field.value || ""
+        : details?.[field.key] || "";
+      if (!String(value).trim()) return parts;
+      if (field.key === "division") parts.push(`Division ${value}`);
+      else if (field.key === "assignmentNumber")
+        parts.push(`Assignment ${value}`);
+      else if (field.custom) parts.push(`${field.label}: ${value}`);
+      else parts.push(value);
+      return parts;
+    }, []);
 }

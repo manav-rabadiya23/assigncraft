@@ -228,9 +228,24 @@ function HomePage() {
             extractedText = await extractTextFromDocx(file);
           }
 
+          console.log("========== ASSIGNCRAFT DEBUG ==========");
+          console.log("File:", file.name);
+          console.log("EXTRACTED TEXT:");
+          console.log(extractedText);
+          console.log("========================================");
+
           const detected = extractedText.trim()
             ? detectQuestions(extractedText)
             : { questions: [], confidence: 0, usedFallback: false };
+
+          console.log("DETECTED RESULT:", detected);
+          console.log("DETECTED QUESTIONS COUNT:", detected.questions.length);
+          console.log(
+            "DETECTED QUESTIONS JSON:",
+            JSON.stringify(detected.questions, null, 2),
+          );
+
+          console.log("========================================");
 
           if (usedOcr) totalOcrFiles += 1;
           if (

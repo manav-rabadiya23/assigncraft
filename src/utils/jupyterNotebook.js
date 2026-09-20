@@ -1,8 +1,9 @@
 import { saveAs } from "file-saver";
 
-function splitLines(text = "") {
+function splitLines(text) {
   const normalized = String(text).replace(/\r\n/g, "\n");
   const lines = normalized.split("\n");
+
   return lines.length
     ? lines.map((line, index) =>
         index < lines.length - 1 ? `${line}\n` : line,
@@ -13,15 +14,48 @@ function splitLines(text = "") {
 function cleanQuestionText(question = "") {
   return String(question)
     .replace(
-      /^(?:Exercise|Experiment|Practical)\s*(?:No\.?\s*)?\d+\s*[:.)-]?\s*/i,
+      /^(?:Exercise|Experiment|Practical)\s*(?:No\.\s*)?\d+\s*[:.)-]?\s*/i,
       "",
     )
     .replace(
-      /^(?:Q(?:uestion)?|Que)\s*(?:No\.?\s*)?[-.:]?\s*\d+\s*[:.)-]?\s*/i,
+      /^(?:Q(?:uestion)?|Que)\s*(?:No\.\s*)?[-.:]?\s*\d+\s*[:.)-]?\s*/i,
       "",
     )
     .replace(/^\d{1,4}\s*[.)-:]\s*/, "")
     .trim();
+}
+
+function createAssignmentHeaderCell(details = {}) {
+  const {
+    assignmentNumber = "",
+    name = "",
+    id = "",
+    subject = "PYTHON",
+    course = "",
+    division = "",
+    semester = "",
+  } = details;
+
+  const source = [
+    `<h3>Name: ${name}</h3>`,
+    `<h3>ID: ${id}</h3>`,
+    `<h3>Subject: ${subject}</h3>`,
+    `<h3>Course: ${course}</h3>`,
+    `<h3>Division: ${division}</h3>`,
+    `<h3>Semester: ${semester}</h3>`,
+    "",
+    '<div align="center">',
+    "",
+    `# Assignment-${assignmentNumber || "1"}`,
+    "",
+    "</div>",
+  ];
+
+  return {
+    cell_type: "markdown",
+    metadata: {},
+    source: splitLines(source.join("\n")),
+  };
 }
 
 function createMarkdownCell(question, number) {
@@ -44,7 +78,7 @@ function createCodeCell() {
   };
 }
 
-export function createPythonNotebook(questions) {
+export function createPythonNotebook(questions, studentDetails = {}) {
   const validQuestions = questions.map(cleanQuestionText).filter(Boolean);
 
   if (!validQuestions.length) {
@@ -53,6 +87,10 @@ export function createPythonNotebook(questions) {
 
   const cells = [];
 
+  // Assignment details/header
+  cells.push(createAssignmentHeaderCell(studentDetails));
+
+  // Questions
   validQuestions.forEach((question, index) => {
     cells.push(createMarkdownCell(question, index + 1), createCodeCell());
   });
@@ -83,7 +121,10 @@ export function createPythonNotebook(questions) {
 }
 
 function sourceToText(source) {
-  if (Array.isArray(source)) return source.join("");
+  if (Array.isArray(source)) {
+    return source.join("");
+  }
+
   return String(source || "");
 }
 
@@ -111,7 +152,10 @@ function questionNumberFromMarkdown(source) {
 
   for (const pattern of patterns) {
     const match = text.match(pattern);
-    if (match) return Number(match[1]);
+
+    if (match) {
+      return Number(match[1]);
+    }
   }
 
   return null;
@@ -126,9 +170,6 @@ function normalizeQuestionForComparison(question = "") {
     .replace(/[–—]/g, "-")
     .replace(/[•●▪◦\uf0b7]/g, " ");
 
-  // Teacher files often include sample input/output below the real question.
-  // Existing notebooks usually contain only the question statement.
-  // Ignore the sample section while comparing duplicates.
   text = text.replace(
     /\b(?:sample\s+input|sample\s+output|expected\s+output)\b[\s\S]*$/i,
     "",
@@ -155,11 +196,16 @@ function diceSimilarity(first, second) {
   const a = tokenSet(first);
   const b = tokenSet(second);
 
-  if (!a.size || !b.size) return 0;
+  if (!a.size || !b.size) {
+    return 0;
+  }
 
   let common = 0;
+
   for (const token of a) {
-    if (b.has(token)) common += 1;
+    if (b.has(token)) {
+      common += 1;
+    }
   }
 
   return (2 * common) / (a.size + b.size);
@@ -169,25 +215,28 @@ function questionsAreSame(first, second) {
   const a = normalizeQuestionForComparison(first);
   const b = normalizeQuestionForComparison(second);
 
-  if (!a || !b) return false;
-  if (a === b) return true;
+  if (!a || !b) {
+    return false;
+  }
+
+  if (a === b) {
+    return true;
+  }
 
   const shorter = a.length <= b.length ? a : b;
   const longer = a.length > b.length ? a : b;
 
-  // Safe for cases where the PDF parser adds extra examples/details after
-  // the same question text.
   if (shorter.length >= 28 && longer.startsWith(shorter)) {
     return true;
   }
 
-  // Handles small formatting/wording differences without treating unrelated
-  // questions as duplicates.
   return diceSimilarity(a, b) >= 0.88;
 }
 
 export function getNotebookQuestions(notebook) {
-  if (!notebook || !Array.isArray(notebook.cells)) return [];
+  if (!notebook || !Array.isArray(notebook.cells)) {
+    return [];
+  }
 
   return notebook.cells
     .filter((cell) => cell?.cell_type === "markdown")
@@ -195,7 +244,9 @@ export function getNotebookQuestions(notebook) {
       const rawText = sourceToText(cell.source);
       const number = questionNumberFromMarkdown(rawText);
 
-      if (!number) return null;
+      if (!number) {
+        return null;
+      }
 
       return {
         number,
@@ -210,6 +261,7 @@ export function compareTeacherQuestionsWithNotebook(
   teacherQuestions = [],
 ) {
   const existingQuestions = getNotebookQuestions(notebook);
+
   const validTeacherQuestions = teacherQuestions
     .map(cleanQuestionText)
     .filter(Boolean);
@@ -222,10 +274,6 @@ export function compareTeacherQuestionsWithNotebook(
     existingQuestions.map((question) => question.number),
   );
 
-  // If the latest teacher file contains at least as many questions as the
-  // completed notebook, it is very likely the teacher sent the full updated
-  // assignment (old + new). This lets us safely keep Q1..Qn and only append
-  // questions after the notebook's last completed question.
   const looksLikeFullUpdatedAssignment =
     lastQuestionNumber > 0 &&
     validTeacherQuestions.length >= lastQuestionNumber &&
@@ -242,6 +290,7 @@ export function compareTeacherQuestionsWithNotebook(
     );
 
     const teacherPositionNumber = index + 1;
+
     const positionalDuplicate =
       !matchedExisting &&
       looksLikeFullUpdatedAssignment &&
@@ -256,6 +305,7 @@ export function compareTeacherQuestionsWithNotebook(
           (positionalDuplicate ? teacherPositionNumber : null),
         matchedBy: matchedExisting ? "content" : "position",
       });
+
       return;
     }
 
@@ -306,7 +356,9 @@ export function inspectNotebook(notebook) {
 }
 
 export async function readNotebookFile(file) {
-  if (!file) throw new Error("Please choose a Jupyter Notebook file.");
+  if (!file) {
+    throw new Error("Please choose a Jupyter Notebook file.");
+  }
 
   if (!file.name.toLowerCase().endsWith(".ipynb")) {
     throw new Error("Please upload a valid .ipynb file.");
@@ -333,7 +385,6 @@ export function continuePythonNotebook(
   questions,
   lastQuestionNumber,
 ) {
-  // Deep copy ensures the uploaded notebook object itself is never changed.
   const notebook = JSON.parse(JSON.stringify(originalNotebook));
 
   const validQuestions = questions.map(cleanQuestionText).filter(Boolean);
@@ -352,10 +403,17 @@ export function continuePythonNotebook(
     notebook.cells.push(createMarkdownCell(question, number), createCodeCell());
   });
 
-  // Preserve old notebook metadata/format. Supply safe defaults only if missing.
-  if (!notebook.metadata) notebook.metadata = {};
-  if (!notebook.nbformat) notebook.nbformat = 4;
-  if (notebook.nbformat_minor === undefined) notebook.nbformat_minor = 5;
+  if (!notebook.metadata) {
+    notebook.metadata = {};
+  }
+
+  if (!notebook.nbformat) {
+    notebook.nbformat = 4;
+  }
+
+  if (notebook.nbformat_minor === undefined) {
+    notebook.nbformat_minor = 5;
+  }
 
   return notebook;
 }

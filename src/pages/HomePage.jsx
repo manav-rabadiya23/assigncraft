@@ -102,16 +102,10 @@ function HomePage() {
 
     setCustomDetails((current) => [...current, newDetail]);
 
-    setDocumentOptions((current) => ({
-      ...current,
-      headerFields: {
-        ...current.headerFields,
-        [`custom:${id}`]: true,
-      },
-      headerFieldOrder: [...(current.headerFieldOrder || []), `custom:${id}`],
-    }));
-
-    showMessage("success", `"${cleanLabel}" added to Assignment Details.`);
+    showMessage(
+      "success",
+      `"${cleanLabel}" added to Assignment Details. Select it in Header or Footer if you want to display it there.`,
+    );
     return true;
   };
 
@@ -153,12 +147,20 @@ function HomePage() {
 
     setDocumentOptions((current) => {
       const nextHeaderFields = { ...current.headerFields };
+      const nextFooterFields = { ...current.footerFields };
       delete nextHeaderFields[`custom:${id}`];
+      delete nextFooterFields[`custom:${id}`];
 
       return {
         ...current,
         headerFields: nextHeaderFields,
-        headerFieldOrder: (current.headerFieldOrder || []).filter((key) => key !== `custom:${id}`),
+        footerFields: nextFooterFields,
+        headerFieldOrder: (current.headerFieldOrder || []).filter(
+          (key) => key !== `custom:${id}`,
+        ),
+        footerFieldOrder: (current.footerFieldOrder || []).filter(
+          (key) => key !== `custom:${id}`,
+        ),
       };
     });
 
@@ -409,14 +411,26 @@ function HomePage() {
     questionRefs.current = [];
     showMessage("info", "All questions have been cleared.");
   };
-
-  const toggleHeader = () => {
+  const setHeaderMode = (mode) => {
     setDocumentOptions((current) => ({
       ...current,
-      showHeaderEveryPage: !current.showHeaderEveryPage,
+      headerMode: mode,
     }));
   };
 
+  const setFooterMode = (mode) => {
+    setDocumentOptions((current) => ({
+      ...current,
+      footerMode: mode,
+    }));
+  };
+
+  const togglePageNumbers = () => {
+    setDocumentOptions((current) => ({
+      ...current,
+      showPageNumbers: !current.showPageNumbers,
+    }));
+  };
   const toggleHeaderField = (field) => {
     setDocumentOptions((current) => ({
       ...current,
@@ -431,11 +445,18 @@ function HomePage() {
     setDocumentOptions((current) => ({ ...current, headerFieldOrder: order }));
   };
 
-  const togglePageNumbers = () => {
+  const toggleFooterField = (field) => {
     setDocumentOptions((current) => ({
       ...current,
-      showPageNumbers: !current.showPageNumbers,
+      footerFields: {
+        ...current.footerFields,
+        [field]: !current.footerFields[field],
+      },
     }));
+  };
+
+  const reorderFooterField = (order) => {
+    setDocumentOptions((current) => ({ ...current, footerFieldOrder: order }));
   };
 
   const toggleCode = () => {
@@ -448,7 +469,10 @@ function HomePage() {
       !documentOptions.includeOutput &&
       !hasEnabledCustom
     ) {
-      showMessage("warning", "At least one answer section must remain selected.");
+      showMessage(
+        "warning",
+        "At least one answer section must remain selected.",
+      );
       return;
     }
 
@@ -468,7 +492,10 @@ function HomePage() {
       !documentOptions.includeCode &&
       !hasEnabledCustom
     ) {
-      showMessage("warning", "At least one answer section must remain selected.");
+      showMessage(
+        "warning",
+        "At least one answer section must remain selected.",
+      );
       return;
     }
 
@@ -491,11 +518,11 @@ function HomePage() {
       (section) => section.label.toLowerCase() === cleanName.toLowerCase(),
     );
 
-    if (
-      reservedNames.includes(cleanName.toLowerCase()) ||
-      duplicateCustom
-    ) {
-      showMessage("warning", `An answer section named "${cleanName}" already exists.`);
+    if (reservedNames.includes(cleanName.toLowerCase()) || duplicateCustom) {
+      showMessage(
+        "warning",
+        `An answer section named "${cleanName}" already exists.`,
+      );
       return false;
     }
 
@@ -528,7 +555,10 @@ function HomePage() {
         sections.filter((section) => section.enabled).length;
 
       if (target.enabled && enabledCount <= 1) {
-        showMessage("warning", "At least one answer section must remain selected.");
+        showMessage(
+          "warning",
+          "At least one answer section must remain selected.",
+        );
         return current;
       }
 
@@ -559,14 +589,18 @@ function HomePage() {
     );
 
     if (reservedNames.includes(cleanName.toLowerCase()) || duplicate) {
-      showMessage("warning", `An answer section named "${cleanName}" already exists.`);
+      showMessage(
+        "warning",
+        `An answer section named "${cleanName}" already exists.`,
+      );
       return false;
     }
 
     setDocumentOptions((current) => ({
       ...current,
-      customAnswerSections: (current.customAnswerSections || []).map((section) =>
-        section.id === id ? { ...section, label: cleanName } : section,
+      customAnswerSections: (current.customAnswerSections || []).map(
+        (section) =>
+          section.id === id ? { ...section, label: cleanName } : section,
       ),
     }));
 
@@ -586,7 +620,8 @@ function HomePage() {
       ),
     }));
 
-    if (target) showMessage("info", `"${target.label}" removed from Answer format.`);
+    if (target)
+      showMessage("info", `"${target.label}" removed from Answer format.`);
   };
 
   const validateForm = () => {
@@ -614,8 +649,37 @@ function HomePage() {
       return false;
     }
 
-    if (!Object.values(documentOptions.headerFields).some(Boolean)) {
-      showMessage("error", "Select at least one assignment detail to display.");
+    const headerMode = documentOptions.headerMode || "none";
+
+    const footerMode = documentOptions.footerMode || "none";
+
+    const hasHeaderFields = Object.values(
+      documentOptions.headerFields || {},
+    ).some(Boolean);
+
+    const hasFooterFields = Object.values(
+      documentOptions.footerFields || {},
+    ).some(Boolean);
+
+    if (headerMode !== "none" && !hasHeaderFields) {
+      showMessage(
+        "error",
+        "Select at least one detail for the header or set Header to Don't show.",
+      );
+
+      return false;
+    }
+
+    if (
+      footerMode !== "none" &&
+      !hasFooterFields &&
+      !documentOptions.showPageNumbers
+    ) {
+      showMessage(
+        "error",
+        "Select at least one detail for the footer, enable Page Number, or set Footer to Don't show.",
+      );
+
       return false;
     }
 
@@ -716,9 +780,12 @@ function HomePage() {
         <DocumentOptions
           options={documentOptions}
           customDetails={customDetails}
-          onToggleHeader={toggleHeader}
+          onSetHeaderMode={setHeaderMode}
           onToggleHeaderField={toggleHeaderField}
           onReorderHeaderField={reorderHeaderField}
+          onSetFooterMode={setFooterMode}
+          onToggleFooterField={toggleFooterField}
+          onReorderFooterField={reorderFooterField}
           onTogglePageNumbers={togglePageNumbers}
           onToggleCode={toggleCode}
           onToggleOutput={toggleOutput}

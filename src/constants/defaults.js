@@ -13,24 +13,6 @@ export const EMPTY_DETAILS = {
   assignmentNumber: "",
 };
 
-export const DEFAULT_DOCUMENT_OPTIONS = {
-  showHeaderEveryPage: false,
-  showPageNumbers: false,
-  includeCode: true,
-  includeOutput: true,
-  customAnswerSections: [],
-  headerFieldOrder: ["fullName", "studentId", "division", "subject", "subjectCode", "courseName", "assignmentNumber"],
-  headerFields: {
-    fullName: true,
-    studentId: true,
-    division: true,
-    subject: true,
-    subjectCode: true,
-    courseName: false,
-    assignmentNumber: false,
-  },
-};
-
 export const HEADER_FIELD_OPTIONS = [
   { key: "fullName", label: "Full Name" },
   { key: "studentId", label: "Student ID" },
@@ -40,3 +22,48 @@ export const HEADER_FIELD_OPTIONS = [
   { key: "courseName", label: "Course Name" },
   { key: "assignmentNumber", label: "Assignment Number" },
 ];
+
+export const DEFAULT_DOCUMENT_OPTIONS = {
+  headerMode: "none",
+  footerMode: "none",
+  showPageNumbers: false,
+  includeCode: true,
+  includeOutput: true,
+  customAnswerSections: [],
+  headerFieldOrder: [
+    "fullName",
+    "studentId",
+    "division",
+    "subject",
+    "subjectCode",
+    "courseName",
+    "assignmentNumber",
+  ],
+  footerFieldOrder: [
+    "courseName",
+    "subject",
+    "assignmentNumber",
+    "fullName",
+    "studentId",
+    "division",
+    "subjectCode",
+  ],
+  headerFields: {
+    fullName: true,
+    studentId: true,
+    division: true,
+    subject: true,
+    subjectCode: true,
+    courseName: false,
+    assignmentNumber: false,
+  },
+  footerFields: {
+    fullName: false,
+    studentId: false,
+    division: false,
+    subject: false,
+    subjectCode: false,
+    courseName: false,
+    assignmentNumber: false,
+  },
+};

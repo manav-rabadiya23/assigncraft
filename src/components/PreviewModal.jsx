@@ -1,14 +1,13 @@
 import {
   getSelectedDetailRows,
+  getSelectedFooterParts,
   getSelectedHeaderParts,
 } from "../utils/documentFields";
 
 function PreviewDetailRow({ label, value, last = false }) {
   return (
     <div
-      className={`grid grid-cols-[125px_1fr] ${
-        last ? "" : "border-b border-slate-500"
-      }`}
+      className={`grid grid-cols-[125px_1fr] ${last ? "" : "border-b border-slate-500"}`}
     >
       <div className="border-r border-slate-500 px-3 py-2 font-bold">
         {label}
@@ -18,11 +17,13 @@ function PreviewDetailRow({ label, value, last = false }) {
   );
 }
 
-function RepeatingHeaderPreview({ details, options }) {
-  if (!options.showHeaderEveryPage) return null;
-
+function PageHeader({ details, options, pageNumber }) {
+  const show =
+    options.headerMode === "every" ||
+    (options.headerMode === "first" && pageNumber === 1);
+  if (!show) return <div className="h-4" />;
   const values = getSelectedHeaderParts(details, options);
-
+  if (!values.length) return <div className="h-4" />;
   return (
     <div className="mb-5 border-b border-slate-500 pb-2 text-center font-serif text-[12px] leading-5 text-black">
       {values.join(" | ")}
@@ -30,117 +31,78 @@ function RepeatingHeaderPreview({ details, options }) {
   );
 }
 
-function WordLikePage({ details, questions, options }) {
-  const selectedRows = getSelectedDetailRows(details, options);
-  const validQuestions = questions.filter((question) => question.trim());
-
+function PageFooter({ details, options, pageNumber }) {
+  const showDetails =
+    options.footerMode === "every" ||
+    (options.footerMode === "first" && pageNumber === 1);
+  const parts = [];
+  if (showDetails) parts.push(...getSelectedFooterParts(details, options));
+  if (options.showPageNumbers) parts.push(`Page ${pageNumber}`);
+  if (!parts.length) return null;
   return (
-    <div className="word-page mx-auto bg-white text-black shadow-xl">
-      <RepeatingHeaderPreview details={details} options={options} />
+    <div className="mt-8 border-t border-slate-300 pt-2 text-center font-serif text-xs text-slate-600">
+      {parts.join("  |  ")}
+    </div>
+  );
+}
 
-      <div className="text-center font-serif">
-        <h3 className="text-[23px] font-bold uppercase leading-tight">
-          Assignment {details.assignmentNumber}
-        </h3>
-        <p className="mt-2 text-[17px] font-bold">{details.subject}</p>
-      </div>
-
-      {selectedRows.length > 0 && (
-        <div className="mt-7 overflow-hidden border border-slate-500 font-serif text-[16px]">
-          {selectedRows.map(([label, value], index) => (
-            <PreviewDetailRow
-              key={label}
-              label={label}
-              value={value}
-              last={index === selectedRows.length - 1}
-            />
-          ))}
+function QuestionBlock({ question, index, options }) {
+  const custom = (options.customAnswerSections || []).filter(
+    (section) => section.enabled,
+  );
+  const hasRows = options.includeCode || options.includeOutput || custom.length;
+  return (
+    <div className="break-inside-avoid">
+      <h4 className="mb-2 text-[17px] font-bold">Question {index + 1}</h4>
+      <div className="border border-slate-600 text-[16px]">
+        <div
+          className={`grid grid-cols-[95px_1fr] ${hasRows ? "border-b border-slate-600" : ""}`}
+        >
+          <div className="border-r border-slate-600 p-3 font-bold">
+            Q-{index + 1}
+          </div>
+          <div className="p-3 leading-6">{question}</div>
         </div>
-      )}
-
-      <div className="mt-7 space-y-7 font-serif">
-        {validQuestions.map((question, index) => (
-          <div key={index} className="break-inside-avoid">
-            <h4 className="mb-2 text-[17px] font-bold">
-              Question {index + 1}
-            </h4>
-
-            <div className="border border-slate-600 text-[16px]">
-              <div
-                className={`grid grid-cols-[95px_1fr] ${
-                  options.includeCode ||
-                  options.includeOutput ||
-                  (options.customAnswerSections || []).some((section) => section.enabled)
-                    ? "border-b border-slate-600"
-                    : ""
-                }`}
-              >
-                <div className="border-r border-slate-600 p-3 font-bold">
-                  Q-{index + 1}
-                </div>
-                <div className="p-3 leading-6">{question}</div>
-              </div>
-
-              {options.includeCode && (
-                <div
-                  className={`grid grid-cols-[95px_1fr] ${
-                    options.includeOutput ||
-                    (options.customAnswerSections || []).some((section) => section.enabled)
-                      ? "border-b border-slate-600"
-                      : ""
-                  }`}
-                >
-                  <div className="border-r border-slate-600 p-3 font-bold">
-                    Code
-                  </div>
-                  <div className="h-44 bg-white" />
-                </div>
-              )}
-
-              {options.includeOutput && (
-                <div
-                  className={`grid grid-cols-[95px_1fr] ${
-                    (options.customAnswerSections || []).some((section) => section.enabled)
-                      ? "border-b border-slate-600"
-                      : ""
-                  }`}
-                >
-                  <div className="border-r border-slate-600 p-3 font-bold">
-                    Output
-                  </div>
-                  <div className="h-32 bg-white" />
-                </div>
-              )}
-
-              {(options.customAnswerSections || [])
-                .filter((section) => section.enabled)
-                .map((section, sectionIndex, enabledSections) => (
-                  <div
-                    key={section.id}
-                    className={`grid grid-cols-[95px_1fr] ${
-                      sectionIndex < enabledSections.length - 1
-                        ? "border-b border-slate-600"
-                        : ""
-                    }`}
-                  >
-                    <div className="border-r border-slate-600 p-3 font-bold">
-                      {section.label}
-                    </div>
-                    <div className="h-32 bg-white" />
-                  </div>
-                ))}
+        {options.includeCode && (
+          <div
+            className={`grid grid-cols-[95px_1fr] ${options.includeOutput || custom.length ? "border-b border-slate-600" : ""}`}
+          >
+            <div className="border-r border-slate-600 p-3 font-bold">Code</div>
+            <div className="h-44 bg-white" />
+          </div>
+        )}
+        {options.includeOutput && (
+          <div
+            className={`grid grid-cols-[95px_1fr] ${custom.length ? "border-b border-slate-600" : ""}`}
+          >
+            <div className="border-r border-slate-600 p-3 font-bold">
+              Output
             </div>
+            <div className="h-32 bg-white" />
+          </div>
+        )}
+        {custom.map((section, i) => (
+          <div
+            key={section.id}
+            className={`grid grid-cols-[95px_1fr] ${i < custom.length - 1 ? "border-b border-slate-600" : ""}`}
+          >
+            <div className="border-r border-slate-600 p-3 font-bold">
+              {section.label}
+            </div>
+            <div className="h-32 bg-white" />
           </div>
         ))}
       </div>
-
-      {options.showPageNumbers && (
-        <div className="mt-10 border-t border-slate-300 pt-2 text-center font-serif text-xs text-slate-600">
-          Page numbers are added automatically in the exported Word/PDF file.
-        </div>
-      )}
     </div>
   );
+}
+
+function buildPages(questions) {
+  const pages = [];
+  const perPage = 3;
+  for (let index = 0; index < questions.length; index += perPage)
+    pages.push(questions.slice(index, index + perPage));
+  return pages.length ? pages : [[]];
 }
 
 export default function PreviewModal({
@@ -153,6 +115,12 @@ export default function PreviewModal({
   onPrint,
   isGenerating,
 }) {
+  const validQuestions = questions
+    .filter((question) => question.trim())
+    .map((question) => question.trim());
+  const pages = buildPages(validQuestions);
+  const selectedRows = getSelectedDetailRows(details, options);
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm sm:p-6"
@@ -169,8 +137,11 @@ export default function PreviewModal({
             <h2 className="mt-1 text-xl font-bold text-slate-900">
               Preview of the exported assignment
             </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Preview of the selected header, footer, and answer format
+              settings.{" "}
+            </p>
           </div>
-
           <button
             type="button"
             onClick={onClose}
@@ -180,15 +151,68 @@ export default function PreviewModal({
             ×
           </button>
         </div>
-
         <div className="overflow-y-auto bg-slate-200 p-3 sm:p-6">
-          <WordLikePage
-            details={details}
-            questions={questions}
-            options={options}
-          />
+          <div className="space-y-6">
+            {pages.map((pageQuestions, pageIndex) => {
+              const pageNumber = pageIndex + 1;
+              const questionOffset = pageIndex * 3;
+              return (
+                <div
+                  key={pageNumber}
+                  className="word-page mx-auto bg-white text-black shadow-xl"
+                >
+                  <PageHeader
+                    details={details}
+                    options={options}
+                    pageNumber={pageNumber}
+                  />
+                  {pageNumber === 1 && (
+                    <>
+                      <div className="text-center font-serif">
+                        <h3 className="text-[23px] font-bold uppercase leading-tight">
+                          Assignment {details.assignmentNumber}
+                        </h3>
+                        <p className="mt-2 text-[17px] font-bold">
+                          {details.subject}
+                        </p>
+                      </div>
+                      {selectedRows.length > 0 && (
+                        <div className="mt-7 overflow-hidden border border-slate-500 font-serif text-[16px]">
+                          {selectedRows.map(([label, value], index) => (
+                            <PreviewDetailRow
+                              key={label}
+                              label={label}
+                              value={value}
+                              last={index === selectedRows.length - 1}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <div className="mt-7 space-y-7 font-serif">
+                    {pageQuestions.map((question, index) => (
+                      <QuestionBlock
+                        key={`${pageNumber}-${index}`}
+                        question={question}
+                        index={questionOffset + index}
+                        options={options}
+                      />
+                    ))}
+                  </div>
+                  <PageFooter
+                    details={details}
+                    options={options}
+                    pageNumber={pageNumber}
+                  />
+                  <div className="mt-3 text-center text-[10px] uppercase tracking-widest text-slate-400">
+                    Preview Page {pageNumber}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-
         <div className="grid gap-2 border-t border-slate-200 bg-white p-4 sm:grid-cols-4 sm:px-7">
           <button
             type="button"

@@ -15,7 +15,11 @@ import {
   WidthType,
 } from "docx";
 import { createAssignmentBaseName } from "./fileName";
-import { getSelectedDetailRows, getSelectedHeaderParts } from "./documentFields";
+import {
+  getSelectedDetailRows,
+  getSelectedFooterParts,
+  getSelectedHeaderParts,
+} from "./documentFields";
 
 function createBorder() {
   return {
@@ -27,6 +31,7 @@ function createBorder() {
 
 function createTableBorders() {
   const border = createBorder();
+
   return {
     top: border,
     bottom: border,
@@ -40,7 +45,10 @@ function createTableBorders() {
 function createCell({ text = "", width = 80, bold = false, blankLines = 0 }) {
   const paragraphs = [
     new Paragraph({
-      spacing: { before: 80, after: 80 },
+      spacing: {
+        before: 80,
+        after: 80,
+      },
       children: [
         new TextRun({
           text,
@@ -56,31 +64,53 @@ function createCell({ text = "", width = 80, bold = false, blankLines = 0 }) {
     paragraphs.push(
       new Paragraph({
         children: [
-          new TextRun({ text: " ", size: 24, font: "Times New Roman" }),
+          new TextRun({
+            text: " ",
+            size: 24,
+            font: "Times New Roman",
+          }),
         ],
       }),
     );
   }
 
   return new TableCell({
-    width: { size: width, type: WidthType.PERCENTAGE },
-    margins: { top: 100, bottom: 100, left: 120, right: 120 },
+    width: {
+      size: width,
+      type: WidthType.PERCENTAGE,
+    },
+    margins: {
+      top: 100,
+      bottom: 100,
+      left: 120,
+      right: 120,
+    },
     children: paragraphs,
   });
 }
 
 function createDetailsTable(details, options) {
-  const detailRows = getSelectedDetailRows(details, options);
+  const rows = getSelectedDetailRows(details, options);
 
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: {
+      size: 100,
+      type: WidthType.PERCENTAGE,
+    },
     borders: createTableBorders(),
-    rows: detailRows.map(
+    rows: rows.map(
       ([label, value]) =>
         new TableRow({
           children: [
-            createCell({ text: label, width: 30, bold: true }),
-            createCell({ text: value, width: 70 }),
+            createCell({
+              text: label,
+              width: 30,
+              bold: true,
+            }),
+            createCell({
+              text: value,
+              width: 70,
+            }),
           ],
         }),
     ),
@@ -91,8 +121,15 @@ function createQuestionTable(question, index, options) {
   const rows = [
     new TableRow({
       children: [
-        createCell({ text: `Q-${index + 1}`, width: 20, bold: true }),
-        createCell({ text: question, width: 80 }),
+        createCell({
+          text: `Q-${index + 1}`,
+          width: 20,
+          bold: true,
+        }),
+        createCell({
+          text: question,
+          width: 80,
+        }),
       ],
     }),
   ];
@@ -101,8 +138,15 @@ function createQuestionTable(question, index, options) {
     rows.push(
       new TableRow({
         children: [
-          createCell({ text: "Code", width: 20, bold: true }),
-          createCell({ text: "", width: 80, blankLines: 8 }),
+          createCell({
+            text: "Code",
+            width: 20,
+            bold: true,
+          }),
+          createCell({
+            width: 80,
+            blankLines: 8,
+          }),
         ],
       }),
     );
@@ -112,8 +156,15 @@ function createQuestionTable(question, index, options) {
     rows.push(
       new TableRow({
         children: [
-          createCell({ text: "Output", width: 20, bold: true }),
-          createCell({ text: "", width: 80, blankLines: 6 }),
+          createCell({
+            text: "Output",
+            width: 20,
+            bold: true,
+          }),
+          createCell({
+            width: 80,
+            blankLines: 6,
+          }),
         ],
       }),
     );
@@ -125,30 +176,48 @@ function createQuestionTable(question, index, options) {
       rows.push(
         new TableRow({
           children: [
-            createCell({ text: section.label, width: 20, bold: true }),
-            createCell({ text: "", width: 80, blankLines: 6 }),
+            createCell({
+              text: section.label,
+              width: 20,
+              bold: true,
+            }),
+            createCell({
+              width: 80,
+              blankLines: 6,
+            }),
           ],
         }),
       );
     });
 
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: {
+      size: 100,
+      type: WidthType.PERCENTAGE,
+    },
     borders: createTableBorders(),
     rows,
   });
 }
 
-function createRepeatingHeader(details, options) {
-  if (!options.showHeaderEveryPage) return undefined;
+function createHeader(details, options) {
+  if (options.headerMode === "none") {
+    return undefined;
+  }
 
   const values = getSelectedHeaderParts(details, options);
+
+  if (!values.length) {
+    return undefined;
+  }
 
   return new Header({
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        spacing: { after: 80 },
+        spacing: {
+          after: 80,
+        },
         children: [
           new TextRun({
             text: values.join(" | "),
@@ -161,65 +230,121 @@ function createRepeatingHeader(details, options) {
   });
 }
 
-function createFooter(options) {
-  if (!options.showPageNumbers) return undefined;
+function createFooter(details, options) {
+  const values = getSelectedFooterParts(details, options);
+
+  const showDetails = options.footerMode !== "none" && values.length > 0;
+
+  const showPageNumbers = Boolean(options.showPageNumbers);
+
+  if (!showDetails && !showPageNumbers) {
+    return undefined;
+  }
+
+  const children = [];
+
+  if (showDetails) {
+    children.push(
+      new TextRun({
+        text: values.join(" | "),
+        size: 18,
+        font: "Times New Roman",
+      }),
+    );
+  }
+
+  if (showPageNumbers) {
+    if (children.length) {
+      children.push(
+        new TextRun({
+          text: "  |  ",
+          size: 18,
+          font: "Times New Roman",
+        }),
+      );
+    }
+
+    children.push(
+      new TextRun({
+        text: "Page ",
+        size: 18,
+        font: "Times New Roman",
+      }),
+      new TextRun({
+        children: [PageNumber.CURRENT],
+        size: 18,
+        font: "Times New Roman",
+      }),
+    );
+  }
 
   return new Footer({
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({ text: "Page ", size: 18, font: "Times New Roman" }),
-          new TextRun({
-            children: [PageNumber.CURRENT],
-            size: 18,
-            font: "Times New Roman",
-          }),
-        ],
+        children,
       }),
     ],
   });
 }
 
 export async function generateWordAssignment({ details, questions, options }) {
-  const validQuestions = questions.map((question) => question.trim()).filter(Boolean);
+  const validQuestions = questions
+    .map((question) => question.trim())
+    .filter(Boolean);
 
   const children = [
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 120 },
+      spacing: {
+        after: 120,
+      },
       children: [
         new TextRun({
-          text: `ASSIGNMENT ${details.assignmentNumber}`,
+          text: `ASSIGNMENT ${details.assignmentNumber || ""}`,
           bold: true,
           size: 34,
           font: "Times New Roman",
         }),
       ],
     }),
+
     new Paragraph({
       alignment: AlignmentType.CENTER,
-      spacing: { after: 300 },
+      spacing: {
+        after: 300,
+      },
       children: [
         new TextRun({
-          text: details.subject,
+          text: details.subject || "",
           bold: true,
           size: 26,
           font: "Times New Roman",
         }),
       ],
     }),
+
     createDetailsTable(details, options),
+
     new Paragraph({
-      spacing: { after: 180 },
-      children: [new TextRun({ text: " " })],
+      spacing: {
+        after: 180,
+      },
+      children: [
+        new TextRun({
+          text: " ",
+        }),
+      ],
     }),
   ];
 
   validQuestions.forEach((question, index) => {
     children.push(
       new Paragraph({
-        spacing: { before: 180, after: 100 },
+        spacing: {
+          before: 180,
+          after: 100,
+        },
         children: [
           new TextRun({
             text: `Question ${index + 1}`,
@@ -229,37 +354,93 @@ export async function generateWordAssignment({ details, questions, options }) {
           }),
         ],
       }),
+
       createQuestionTable(question, index, options),
+
       new Paragraph({
-        spacing: { after: 220 },
-        children: [new TextRun({ text: " " })],
+        spacing: {
+          after: 220,
+        },
+        children: [
+          new TextRun({
+            text: " ",
+          }),
+        ],
       }),
     );
   });
 
-  const header = createRepeatingHeader(details, options);
-  const footer = createFooter(options);
+  const header = createHeader(details, options);
+
+  const footer = createFooter(details, options);
+
+  const useFirstPageHeader = options.headerMode === "first" && Boolean(header);
+
+  const useEveryPageHeader = options.headerMode === "every" && Boolean(header);
+
+  const useFirstPageFooter = options.footerMode === "first" && Boolean(footer);
+
+  const useEveryPageFooter = options.footerMode === "every" && Boolean(footer);
+
+  /*
+   * Page number without footer details:
+   * keep it available on every page.
+   */
+  const pageNumberOnly =
+    options.showPageNumbers && !useFirstPageFooter && !useEveryPageFooter;
 
   const assignmentDocument = new Document({
     sections: [
       {
         properties: {
+          titlePage: Boolean(useFirstPageHeader || useFirstPageFooter),
+
           page: {
             margin: {
-              top: options.showHeaderEveryPage ? 900 : 720,
+              top: useEveryPageHeader || useFirstPageHeader ? 900 : 720,
+
               right: 720,
-              bottom: options.showPageNumbers ? 900 : 720,
+
+              bottom:
+                useEveryPageFooter || useFirstPageFooter || pageNumberOnly
+                  ? 900
+                  : 720,
+
               left: 720,
             },
           },
         },
-        headers: header ? { default: header } : undefined,
-        footers: footer ? { default: footer } : undefined,
+
+        headers: useEveryPageHeader
+          ? {
+              default: header,
+            }
+          : useFirstPageHeader
+            ? {
+                first: header,
+              }
+            : undefined,
+
+        footers: useEveryPageFooter
+          ? {
+              default: footer,
+            }
+          : useFirstPageFooter
+            ? {
+                first: footer,
+              }
+            : pageNumberOnly
+              ? {
+                  default: footer,
+                }
+              : undefined,
+
         children,
       },
     ],
   });
 
   const blob = await Packer.toBlob(assignmentDocument);
+
   saveAs(blob, `${createAssignmentBaseName(details)}.docx`);
 }

@@ -115,9 +115,9 @@ export default function Header() {
 
           {/* Brand Name + Tagline */}
           <div className="min-w-0">
-            <p className="whitespace-nowrap font-poppins text-[17px] font-extrabold tracking-[-0.5px] sm:text-[19px]">
+            <p className="whitespace-nowrap font-sans text-[18px] font-bold tracking-[-0.6px] sm:text-[20px]">
               <span className="text-slate-900">Assign</span>
-              <span className="text-indigo-600 transition-colors duration-200 group-hover:text-violet-600">
+              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
                 Craft
               </span>
             </p>

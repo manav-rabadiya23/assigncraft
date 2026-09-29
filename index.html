@@ -2,10 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>AssignCraft</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <meta name="theme-color" content="#4f46e5" />
+
+    <!-- SEO -->
+    <title>AssignCraft – Smart PDF, OCR & Word Assignment Tool</title>
+
+    <meta
+      name="description"
+      content="AssignCraft is a smart assignment tool that extracts questions from PDF and Word files, detects questions, supports OCR for scanned PDFs, and helps create customized Word and PDF assignments."
+    />
+
+    <meta name="author" content="Manav Rabadiya" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="AssignCraft – Smart Assignment Tool" />
+
+    <meta
+      property="og:description"
+      content="Create structured assignments from PDF and Word question files with AssignCraft."
+    />
+
+    <meta property="og:image" content="/icon-512.png" />
+
+    <meta property="og:type" content="website" />
+
+    <meta property="og:url" content="https://assigncraft.vercel.app/" />
 
     <!-- Google Analytics -->
     <script
@@ -15,6 +44,7 @@
 
     <script>
       window.dataLayer = window.dataLayer || [];
+
       function gtag() {
         dataLayer.push(arguments);
       }

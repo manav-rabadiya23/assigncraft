@@ -99,10 +99,33 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-2.5 sm:px-6 xl:px-8">
-        <NavLink to="/" className="group shrink-0" onClick={closeMobileMenu}>
-          <p className="whitespace-nowrap font-serif text-[14px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600 lg:text-[15px] xl:text-[16px]">
-            From Questions to Document
-          </p>
+        <NavLink
+          to="/"
+          className="group flex shrink-0 items-center gap-3"
+          onClick={closeMobileMenu}
+        >
+          {/* Round AssignCraft Logo */}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-indigo-100 sm:h-12 sm:w-12">
+            <img
+              src="/icon-512.png"
+              alt="AssignCraft logo"
+              className="h-full w-full object-cover"
+            />
+          </div>
+
+          {/* Brand Name + Tagline */}
+          <div className="min-w-0">
+            <p className="whitespace-nowrap font-poppins text-[17px] font-extrabold tracking-[-0.5px] sm:text-[19px]">
+              <span className="text-slate-900">Assign</span>
+              <span className="text-indigo-600 transition-colors duration-200 group-hover:text-violet-600">
+                Craft
+              </span>
+            </p>
+
+            <p className="hidden whitespace-nowrap font-serif text-[11px] font-semibold italic tracking-wide text-slate-500 sm:block sm:text-xs">
+              From Questions to Document
+            </p>
+          </div>
         </NavLink>
 
         <nav className="hidden min-w-0 items-center gap-0.5 lg:flex xl:gap-1">

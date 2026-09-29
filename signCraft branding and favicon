@@ -1,0 +1,89 @@
+warning: in the working copy of 'index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/Header.jsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/index.html b/index.html[m
+[1mindex 9c6925c..f4adaab 100644[m
+[1m--- a/index.html[m
+[1m+++ b/index.html[m
+[36m@@ -2,9 +2,10 @@[m
+ <html lang="en">[m
+   <head>[m
+     <meta charset="UTF-8" />[m
+[32m+[m[32m    <meta name="viewport" content="width=device-width, initial-scale=1.0" />[m
+ [m
+     <!-- Favicon -->[m
+[31m-    <link rel="icon" type="image/png" href="/favicon.png" />[m
+[32m+[m[32m    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />[m
+     <link rel="apple-touch-icon" href="/icon-192.png" />[m
+ [m
+     <!-- PWA -->[m
+[36m@@ -17,8 +18,24 @@[m
+ [m
+     <meta[m
+       name="description"[m
+[31m-      content="AssignCraft is a smart assignment tool that extracts questions from PDF and Word files, detects questions, supports OCR for scanned PDFs, and helps create customized Word and PDF assignments."[m
+[32m+[m[32m      content="AssignCraft is a smart PDF, OCR and Word assignment tool developed by Manav Rabadiya. Detect questions from PDF and Word files, customize assignments, and export them to Word or PDF."[m
+     />[m
+[32m+[m[32m    <script type="application/ld+json">[m
+[32m+[m[32m      {[m
+[32m+[m[32m        "@context": "https://schema.org",[m
+[32m+[m[32m        "@type": "SoftwareApplication",[m
+[32m+[m[32m        "name": "AssignCraft",[m
+[32m+[m[32m        "description": "Smart PDF, OCR and Word Assignment Tool developed by Manav Rabadiya.",[m
+[32m+[m[32m        "applicationCategory": "EducationalApplication",[m
+[32m+[m[32m        "operatingSystem": "Web",[m
+[32m+[m[32m        "url": "https://assigncraft.vercel.app/",[m
+[32m+[m[32m        "author": {[m
+[32m+[m[32m          "@type": "Person",[m
+[32m+[m[32m          "name": "Manav Rabadiya",[m
+[32m+[m[32m          "url": "https://rabadiya-manav.vercel.app/"[m
+[32m+[m[32m        }[m
+[32m+[m[32m      }[m
+[32m+[m[32m    </script>[m
+ [m
+     <meta name="author" content="Manav Rabadiya" />[m
+ [m
+[1mdiff --git a/public/favicon.png b/public/favicon.png[m
+[1mindex c75c15c..08ae030 100644[m
+Binary files a/public/favicon.png and b/public/favicon.png differ
+[1mdiff --git a/src/components/Header.jsx b/src/components/Header.jsx[m
+[1mindex dc9e9ce..3f7dded 100644[m
+[1m--- a/src/components/Header.jsx[m
+[1m+++ b/src/components/Header.jsx[m
+[36m@@ -99,10 +99,33 @@[m [mexport default function Header() {[m
+   return ([m
+     <header className="sticky top-0 z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">[m
+       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-2.5 sm:px-6 xl:px-8">[m
+[31m-        <NavLink to="/" className="group shrink-0" onClick={closeMobileMenu}>[m
+[31m-          <p className="whitespace-nowrap font-serif text-[14px] font-semibold italic tracking-wide text-slate-500 transition group-hover:text-indigo-600 lg:text-[15px] xl:text-[16px]">[m
+[31m-            From Questions to Document[m
+[31m-          </p>[m
+[32m+[m[32m        <NavLink[m
+[32m+[m[32m          to="/"[m
+[32m+[m[32m          className="group flex shrink-0 items-center gap-3"[m
+[32m+[m[32m          onClick={closeMobileMenu}[m
+[32m+[m[32m        >[m
+[32m+[m[32m          {/* Round AssignCraft Logo */}[m
+[32m+[m[32m          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-indigo-100 sm:h-12 sm:w-12">[m
+[32m+[m[32m            <img[m
+[32m+[m[32m              src="/icon-512.png"[m
+[32m+[m[32m              alt="AssignCraft logo"[m
+[32m+[m[32m              className="h-full w-full object-cover"[m
+[32m+[m[32m            />[m
+[32m+[m[32m          </div>[m
+[32m+[m
+[32m+[m[32m          {/* Brand Name + Tagline */}[m
+[32m+[m[32m          <div className="min-w-0">[m
+[32m+[m[32m            <p className="whitespace-nowrap font-poppins text-[17px] font-extrabold tracking-[-0.5px] sm:text-[19px]">[m
+[32m+[m[32m              <span className="text-slate-900">Assign</span>[m
+[32m+[m[32m              <span className="text-indigo-600 transition-colors duration-200 group-hover:text-violet-600">[m
+[32m+[m[32m                Craft[m
+[32m+[m[32m              </span>[m
+[32m+[m[32m            </p>[m
+[32m+[m
+[32m+[m[32m            <p className="hidden whitespace-nowrap font-serif text-[11px] font-semibold italic tracking-wide text-slate-500 sm:block sm:text-xs">[m
+[32m+[m[32m              From Questions to Document[m
+[32m+[m[32m            </p>[m
+[32m+[m[32m          </div>[m
+         </NavLink>[m
+ [m
+         <nav className="hidden min-w-0 items-center gap-0.5 lg:flex xl:gap-1">[m

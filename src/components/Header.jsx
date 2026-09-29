@@ -101,28 +101,26 @@ export default function Header() {
       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-2.5 sm:px-6 xl:px-8">
         <NavLink
           to="/"
-          className="group flex shrink-0 items-center gap-3"
+          className="group flex min-w-0 shrink-0 items-center gap-2"
           onClick={closeMobileMenu}
         >
-          {/* Round AssignCraft Logo */}
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-indigo-100 sm:h-12 sm:w-12">
+          {/* Logo */}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full sm:h-12 sm:w-12">
             <img
-              src="/icon-512.png"
-              alt="AssignCraft logo"
+              src="/assigncraft-logo.png"
+              alt="AssignCraft"
               className="h-full w-full object-cover"
             />
           </div>
 
-          {/* Brand Name + Tagline */}
+          {/* Brand */}
           <div className="min-w-0">
-            <p className="whitespace-nowrap font-sans text-[18px] font-bold tracking-[-0.6px] sm:text-[20px]">
+            <p className="whitespace-nowrap font-poppins text-[15px] font-black tracking-[-0.5px] sm:text-[19px]">
               <span className="text-slate-900">Assign</span>
-              <span className="bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                Craft
-              </span>
+              <span className="text-indigo-600">Craft</span>
             </p>
 
-            <p className="hidden whitespace-nowrap font-serif text-[11px] font-semibold italic tracking-wide text-slate-500 sm:block sm:text-xs">
+            <p className="whitespace-nowrap text-[9px] font-semibold italic tracking-wide text-slate-500 sm:text-xs">
               From Questions to Document
             </p>
           </div>

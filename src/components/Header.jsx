@@ -2,84 +2,39 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 
 import {
-  FaChevronDown,
   FaFileArrowUp,
   FaListCheck,
-  FaSliders,
-  FaEye,
   FaHouse,
   FaBars,
   FaXmark,
   FaWandMagicSparkles,
-  FaArrowRightLong,
   FaCircleInfo,
   FaBolt,
   FaUserGroup,
 } from "react-icons/fa6";
 
-const featureItems = [
-  {
-    icon: FaFileArrowUp,
-    title: "Question Input",
-    description: "Multiple files, copy-paste and OCR",
-    to: "/features#question-input",
-  },
-  {
-    icon: FaListCheck,
-    title: "Question Management",
-    description: "Edit, delete and drag & drop",
-    to: "/features#question-management",
-  },
-  {
-    icon: FaSliders,
-    title: "Customization",
-    description: "Custom details and document options",
-    to: "/features#customization",
-  },
-  {
-    icon: FaEye,
-    title: "Preview & Export",
-    description: "Preview, Word, PDF and Print",
-    to: "/features#export",
-  },
-];
-
 export default function Header() {
-  const [desktopHoverOpen, setDesktopHoverOpen] = useState(false);
-  const [desktopClickOpen, setDesktopClickOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileFeaturesOpen, setMobileFeaturesOpen] = useState(false);
 
-  const desktopFeatureRef = useRef(null);
   const mobileMenuRef = useRef(null);
-  const desktopFeaturesOpen = desktopHoverOpen || desktopClickOpen;
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (
-        desktopFeatureRef.current &&
-        !desktopFeatureRef.current.contains(event.target)
-      ) {
-        setDesktopClickOpen(false);
-        setDesktopHoverOpen(false);
-      }
-
       if (
         mobileMenuRef.current &&
         !mobileMenuRef.current.contains(event.target)
       ) {
         setMobileOpen(false);
-        setMobileFeaturesOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
+
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const closeMobileMenu = () => {
     setMobileOpen(false);
-    setMobileFeaturesOpen(false);
   };
 
   const navClass = ({ isActive }) =>
@@ -99,6 +54,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-t-[3px] border-violet-600 border-b border-slate-200/80 bg-white shadow-[0_3px_14px_rgba(15,23,42,0.05)]">
       <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-6 px-4 py-2.5 sm:px-6 xl:px-8">
+        {/* Logo + Brand */}
         <NavLink
           to="/"
           className="group flex min-w-0 shrink-0 items-center gap-2"
@@ -115,7 +71,7 @@ export default function Header() {
 
           {/* Brand */}
           <div className="min-w-0">
-            <p className="whitespace-nowrap font-poppins text-[15px] font-black tracking-[-0.5px] sm:text-[19px]">
+            <p className="whitespace-nowrap font-poppins text-[17px] font-bold tracking-[-0.3px] sm:text-[21px]">
               <span className="text-slate-900">Assign</span>
               <span className="text-indigo-600">Craft</span>
             </p>
@@ -126,7 +82,9 @@ export default function Header() {
           </div>
         </NavLink>
 
+        {/* Desktop Navigation */}
         <nav className="hidden min-w-0 items-center gap-0.5 lg:flex xl:gap-1">
+          {/* Home */}
           <NavLink to="/" end className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaHouse className="text-[12px]" />
@@ -134,6 +92,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* How It Works */}
           <NavLink to="/how-it-works" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaCircleInfo className="text-[12px]" />
@@ -141,6 +100,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* Why AssignCraft */}
           <NavLink to="/why-assigncraft" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaBolt className="text-[12px]" />
@@ -148,84 +108,15 @@ export default function Header() {
             </span>
           </NavLink>
 
-          <div
-            ref={desktopFeatureRef}
-            className="relative"
-            onMouseEnter={() => setDesktopHoverOpen(true)}
-            onMouseLeave={() => setDesktopHoverOpen(false)}
-          >
-            <button
-              type="button"
-              onClick={() => setDesktopClickOpen((current) => !current)}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-xl px-2.5 py-2 text-[13px] font-semibold transition-all duration-200 xl:gap-2 xl:px-3 xl:text-sm ${
-                desktopFeaturesOpen
-                  ? "bg-indigo-50 text-indigo-700 shadow-sm"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-              }`}
-            >
+          {/* Features - Direct Link */}
+          <NavLink to="/features" className={navClass}>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaWandMagicSparkles className="text-[12px]" />
               Features
-              <FaChevronDown
-                className={`text-[10px] transition-transform duration-200 ${
-                  desktopFeaturesOpen ? "rotate-180" : ""
-                }`}
-              />
-            </button>
+            </span>
+          </NavLink>
 
-            {desktopFeaturesOpen && (
-              <div className="absolute left-1/2 top-full z-[100] w-[340px] -translate-x-1/2 pt-2.5">
-                <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_18px_55px_rgba(15,23,42,0.16)]">
-                  <div className="px-2.5 pb-2.5 pt-1.5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-                      AssignCraft Features
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    {featureItems.map((feature) => {
-                      const Icon = feature.icon;
-                      return (
-                        <NavLink
-                          key={feature.title}
-                          to={feature.to}
-                          onClick={() => {
-                            setDesktopClickOpen(false);
-                            setDesktopHoverOpen(false);
-                          }}
-                          className="group flex items-center gap-3 rounded-xl px-2.5 py-2.5 transition hover:bg-indigo-50"
-                        >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-indigo-600">
-                            <Icon className="text-[15px]" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-slate-800 group-hover:text-indigo-700">
-                              {feature.title}
-                            </p>
-                            <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                              {feature.description}
-                            </p>
-                          </div>
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-
-                  <NavLink
-                    to="/features"
-                    onClick={() => {
-                      setDesktopClickOpen(false);
-                      setDesktopHoverOpen(false);
-                    }}
-                    className="mt-2.5 flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
-                  >
-                    View All Features
-                    <FaArrowRightLong className="text-[11px]" />
-                  </NavLink>
-                </div>
-              </div>
-            )}
-          </div>
-
+          {/* Merge Assignment */}
           <NavLink to="/continue-assignment" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaFileArrowUp className="text-[12px]" />
@@ -233,6 +124,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* Jupyter Tools */}
           <NavLink to="/jupyter-tools" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaListCheck className="text-[12px]" />
@@ -240,6 +132,7 @@ export default function Header() {
             </span>
           </NavLink>
 
+          {/* About Us */}
           <NavLink to="/about" className={navClass}>
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap xl:gap-2">
               <FaUserGroup className="text-[12px]" />
@@ -248,21 +141,22 @@ export default function Header() {
           </NavLink>
         </nav>
 
+        {/* Mobile Menu */}
         <div ref={mobileMenuRef} className="relative lg:hidden">
+          {/* Mobile Menu Button */}
           <button
             type="button"
-            onClick={() => {
-              setMobileOpen((current) => !current);
-              if (mobileOpen) setMobileFeaturesOpen(false);
-            }}
+            onClick={() => setMobileOpen((current) => !current)}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg text-slate-700 shadow-sm transition active:scale-95"
             aria-label={mobileOpen ? "Close navigation" : "Open navigation"}
           >
             {mobileOpen ? <FaXmark /> : <FaBars />}
           </button>
 
+          {/* Mobile Navigation Panel */}
           {mobileOpen && (
             <div className="absolute right-0 top-[calc(100%+12px)] z-[200] w-[min(330px,calc(100vw-24px))] max-h-[calc(100vh-90px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2.5 shadow-[0_20px_60px_rgba(15,23,42,0.20)]">
+              {/* Home */}
               <NavLink
                 to="/"
                 end
@@ -275,6 +169,7 @@ export default function Header() {
                 Home
               </NavLink>
 
+              {/* How It Works */}
               <NavLink
                 to="/how-it-works"
                 onClick={closeMobileMenu}
@@ -286,6 +181,7 @@ export default function Header() {
                 How It Works
               </NavLink>
 
+              {/* Why AssignCraft */}
               <NavLink
                 to="/why-assigncraft"
                 onClick={closeMobileMenu}
@@ -297,70 +193,19 @@ export default function Header() {
                 Why AssignCraft
               </NavLink>
 
-              <div className="mt-1">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMobileFeaturesOpen((current) => !current);
-                  }}
-                  className={`flex w-full items-center justify-between rounded-xl px-3 py-3 text-sm font-semibold transition ${
-                    mobileFeaturesOpen
-                      ? "bg-indigo-50 text-indigo-700"
-                      : "text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                      <FaWandMagicSparkles />
-                    </span>
-                    Features
-                  </span>
-                  <FaChevronDown
-                    className={`mr-1 text-xs transition-transform duration-200 ${
-                      mobileFeaturesOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
+              {/* Features - Direct Link */}
+              <NavLink
+                to="/features"
+                onClick={closeMobileMenu}
+                className={mobileNavClass}
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <FaWandMagicSparkles />
+                </div>
+                Features
+              </NavLink>
 
-                {mobileFeaturesOpen && (
-                  <div className="ml-5 mt-2 space-y-1 border-l-2 border-indigo-100 pl-3">
-                    {featureItems.map((feature) => {
-                      const Icon = feature.icon;
-                      return (
-                        <NavLink
-                          key={feature.title}
-                          to={feature.to}
-                          onClick={closeMobileMenu}
-                          className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition hover:bg-indigo-50"
-                        >
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-sm text-violet-600">
-                            <Icon />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-800">
-                              {feature.title}
-                            </p>
-                            <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                              {feature.description}
-                            </p>
-                          </div>
-                        </NavLink>
-                      );
-                    })}
-
-                    <NavLink
-                      to="/features"
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50"
-                    >
-                      View All Features
-                      <FaArrowRightLong className="text-[10px]" />
-                    </NavLink>
-                  </div>
-                )}
-              </div>
-
+              {/* Merge Assignment */}
               <NavLink
                 to="/continue-assignment"
                 onClick={closeMobileMenu}
@@ -372,6 +217,7 @@ export default function Header() {
                 Merge Assignment
               </NavLink>
 
+              {/* Jupyter Tools */}
               <NavLink
                 to="/jupyter-tools"
                 onClick={closeMobileMenu}
@@ -383,6 +229,7 @@ export default function Header() {
                 Jupyter Tools
               </NavLink>
 
+              {/* About Us */}
               <NavLink
                 to="/about"
                 onClick={closeMobileMenu}

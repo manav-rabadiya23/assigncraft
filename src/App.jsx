@@ -7,10 +7,13 @@ import FeaturesPage from "./pages/FeaturesPage";
 import AboutPage from "./pages/AboutPage";
 import ContinueAssignmentPage from "./pages/ContinueAssignmentPage";
 import JupyterToolsPage from "./pages/JupyterToolsPage";
+import VerificationPopup from "./components/VerificationPopup";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <VerificationPopup />
+
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route

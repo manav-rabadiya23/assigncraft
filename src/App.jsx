@@ -8,10 +8,12 @@ import AboutPage from "./pages/AboutPage";
 import ContinueAssignmentPage from "./pages/ContinueAssignmentPage";
 import JupyterToolsPage from "./pages/JupyterToolsPage";
 import VerificationPopup from "./components/VerificationPopup";
+import ScrollToTop from "./components/ScrollToTop";
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <VerificationPopup />
 
       <Routes>

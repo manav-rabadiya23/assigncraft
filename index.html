@@ -2,58 +2,153 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Favicon -->
+    <!-- =========================
+         BASIC SEO
+    ========================== -->
+
+    <title>AssignCraft – PDF, Word & Assignment Generator</title>
+
+    <meta
+      name="description"
+      content="AssignCraft is an assignment generator developed by Manav Rabadiya. Detect questions from PDF and Word files, customize assignments, and export them to Word or PDF."
+    />
+
+    <meta name="author" content="Manav Rabadiya" />
+
+    <meta
+      name="keywords"
+      content="AssignCraft, assignment generator, PDF assignment generator, Word assignment generator, question detection, OCR assignment tool, student assignment tool, PDF to Word assignment, DOCX assignment generator, Jupyter assignment tool"
+    />
+
+    <meta name="robots" content="index, follow" />
+
+    <link rel="canonical" href="https://assigncraft.vercel.app/" />
+
+    <!-- =========================
+         FAVICON
+    ========================== -->
+
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+
     <link rel="apple-touch-icon" href="/icon-192.png" />
 
-    <!-- PWA -->
+    <!-- =========================
+         PWA
+    ========================== -->
+
     <link rel="manifest" href="/manifest.webmanifest" />
 
     <meta name="theme-color" content="#4f46e5" />
 
-    <!-- SEO -->
-    <title>AssignCraft – Smart PDF, OCR & Word Assignment Tool</title>
+    <!-- =========================
+         OPEN GRAPH
+    ========================== -->
+
+    <meta property="og:type" content="website" />
 
     <meta
-      name="description"
-      content="AssignCraft is a smart PDF, OCR and Word assignment tool developed by Manav Rabadiya. Detect questions from PDF and Word files, customize assignments, and export them to Word or PDF."
+      property="og:title"
+      content="AssignCraft – PDF, Word & Assignment Generator"
     />
+
+    <meta
+      property="og:description"
+      content="Detect questions from PDF and Word files, customize your assignment, and export it to Word or PDF with AssignCraft."
+    />
+
+    <meta property="og:url" content="https://assigncraft.vercel.app/" />
+
+    <meta property="og:site_name" content="AssignCraft" />
+
+    <meta
+      property="og:image"
+      content="https://assigncraft.vercel.app/icon-512.png"
+    />
+
+    <meta property="og:image:alt" content="AssignCraft logo" />
+
+    <!-- =========================
+         TWITTER / X
+    ========================== -->
+
+    <meta name="twitter:card" content="summary" />
+
+    <meta
+      name="twitter:title"
+      content="AssignCraft – PDF, Word & Assignment Generator"
+    />
+
+    <meta
+      name="twitter:description"
+      content="Create structured assignments from PDF and Word question files with AssignCraft."
+    />
+
+    <meta
+      name="twitter:image"
+      content="https://assigncraft.vercel.app/icon-512.png"
+    />
+
+    <meta name="twitter:image:alt" content="AssignCraft logo" />
+
+    <!-- =========================
+         ORGANIZATION + LOGO
+    ========================== -->
+
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
+        "@type": "Organization",
+        "@id": "https://assigncraft.vercel.app/#organization",
         "name": "AssignCraft",
-        "description": "Smart PDF, OCR and Word Assignment Tool developed by Manav Rabadiya.",
-        "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Web",
         "url": "https://assigncraft.vercel.app/",
-        "author": {
+        "logo": "https://assigncraft.vercel.app/assigncraft-logo.png",
+        "description": "AssignCraft is an assignment generator for processing questions from PDF and Word files, customizing assignment documents, and exporting them to Word or PDF.",
+        "founder": {
           "@type": "Person",
-          "name": "Manav Rabadiya",
-          "url": "https://rabadiya-manav.vercel.app/"
+          "name": "Manav Rabadiya"
         }
       }
     </script>
 
-    <meta name="author" content="Manav Rabadiya" />
+    <!-- =========================
+         SOFTWARE APPLICATION
+    ========================== -->
 
-    <!-- Open Graph -->
-    <meta property="og:title" content="AssignCraft – Smart Assignment Tool" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://assigncraft.vercel.app/#software",
+        "name": "AssignCraft",
+        "description": "PDF, Word and assignment generator for detecting questions, customizing assignment documents and exporting them to Word or PDF.",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "url": "https://assigncraft.vercel.app/",
+        "image": "https://assigncraft.vercel.app/assigncraft-logo.png",
+        "author": {
+          "@type": "Person",
+          "name": "Manav Rabadiya"
+        },
+        "publisher": {
+          "@id": "https://assigncraft.vercel.app/#organization"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "INR"
+        }
+      }
+    </script>
 
-    <meta
-      property="og:description"
-      content="Create structured assignments from PDF and Word question files with AssignCraft."
-    />
+    <!-- =========================
+         GOOGLE ANALYTICS
+    ========================== -->
 
-    <meta property="og:image" content="/icon-512.png" />
-
-    <meta property="og:type" content="website" />
-
-    <meta property="og:url" content="https://assigncraft.vercel.app/" />
-
-    <!-- Google Analytics -->
     <script
       async
       src="https://www.googletagmanager.com/gtag/js?id=G-ZJ7TG3N93K"
@@ -73,6 +168,7 @@
 
   <body>
     <div id="root"></div>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

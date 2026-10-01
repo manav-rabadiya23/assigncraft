@@ -877,7 +877,17 @@ function HomePage() {
           isGenerating={isGenerating}
         />
       )}
-
+      <p className="mt-4 text-center text-sm text-slate-500">
+        Developed by{" "}
+        <a
+          href="https://rabadiya-manav.vercel.app/"
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-indigo-600 hover:text-indigo-700"
+        >
+          Manav Rabadiya
+        </a>
+      </p>
       <SiteFooter />
     </div>
   );

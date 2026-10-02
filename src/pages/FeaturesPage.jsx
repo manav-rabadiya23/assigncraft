@@ -1,3 +1,5 @@
+import SEO from "../components/SEO";
+
 import {
   FaArrowDown,
   FaArrowsAltV,
@@ -300,259 +302,278 @@ const colorStyles = {
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <Header />
+    <>
+      <SEO
+        title="AssignCraft Features – PDF, DOCX, OCR & Assignment Tools"
+        description="Explore AssignCraft features including PDF and DOCX support, OCR, question detection, assignment customization, header and footer options, Word and PDF export, and Jupyter tools."
+        path="/features"
+        keywords="AssignCraft features, PDF assignment generator, DOCX assignment generator, OCR question detection, Word assignment generator, PDF assignment tool, assignment customization, Jupyter assignment tool"
+        breadcrumbs={[
+          {
+            name: "Home",
+            path: "/",
+          },
+          {
+            name: "Features",
+            path: "/features",
+          },
+        ]}
+      />
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <Header />
 
-      <main>
-        {/* =====================================================
+        <main>
+          {/* =====================================================
             HERO
         ===================================================== */}
-        <section className="relative overflow-hidden border-b border-slate-200 bg-white">
-          <div className="absolute -left-32 top-10 h-80 w-80 rounded-full bg-indigo-100/70 blur-3xl" />
+          <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+            <div className="absolute -left-32 top-10 h-80 w-80 rounded-full bg-indigo-100/70 blur-3xl" />
 
-          <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-violet-100/70 blur-3xl" />
+            <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-violet-100/70 blur-3xl" />
 
-          <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:py-20 lg:py-24">
-            <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-700">
-              <FaSlidersH />
-              AssignCraft Features
-            </div>
-
-            <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Everything AssignCraft
-              <span className="block text-indigo-600">Has to Offer</span>
-            </h1>
-
-            <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
-              Explore the tools available for question processing, assignment
-              building, document customization, document output, and Python
-              notebook workflows.
-            </p>
-
-            {/* Feature navigation */}
-            <div className="mx-auto mt-12 max-w-5xl">
-              <div className="relative">
-                {/* Connecting line */}
-                <div className="absolute left-[7%] right-[7%] top-6 hidden h-px bg-gradient-to-r from-slate-300 via-indigo-400 to-purple-400 lg:block" />
-
-                {/* Six sections */}
-                <div className="grid grid-cols-2 gap-7 sm:grid-cols-3 lg:grid-cols-6 lg:gap-2">
-                  {featureSections.map((section) => {
-                    const style = colorStyles[section.color];
-
-                    return (
-                      <a
-                        key={section.id}
-                        href={`#${section.id}`}
-                        className="group relative"
-                      >
-                        <div
-                          className={`relative z-10 mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xs font-black shadow-lg transition duration-300 group-hover:scale-110 ${style.navNumber}`}
-                        >
-                          {section.number}
-
-                          <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-indigo-400/20" />
-                        </div>
-
-                        <p className="mt-3 text-xs font-black leading-4 text-slate-700 transition group-hover:text-indigo-600">
-                          {section.eyebrow}
-                        </p>
-                      </a>
-                    );
-                  })}
-                </div>
+            <div className="relative mx-auto max-w-6xl px-4 py-16 text-center sm:py-20 lg:py-24">
+              <div className="mx-auto inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-violet-700">
+                <FaSlidersH />
+                AssignCraft Features
               </div>
-            </div>
-          </div>
-        </section>
 
-        {/* =====================================================
-            FEATURE SECTIONS
-        ===================================================== */}
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
-          {featureSections.map((section, sectionIndex) => {
-            const style = colorStyles[section.color];
+              <h1 className="mx-auto mt-6 max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+                AssignCraft Features
+                <span className="block text-indigo-600">
+                  PDF, DOCX, OCR & Assignment Tools
+                </span>
+              </h1>
+              <p className="mx-auto mt-5 max-w-3xl text-base leading-8 text-slate-600 sm:text-lg">
+                Explore the tools available for question processing, assignment
+                building, document customization, document output, and Python
+                notebook workflows.
+              </p>
 
-            return (
-              <div key={section.id}>
-                <section
-                  id={section.id}
-                  className="scroll-mt-28 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition duration-300 hover:shadow-xl"
-                >
-                  <div className="grid lg:grid-cols-[0.36fr_0.64fr]">
-                    {/* Left panel */}
-                    <div
-                      className={`relative overflow-hidden p-7 text-white sm:p-9 ${style.panel}`}
-                    >
-                      <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+              {/* Feature navigation */}
+              <div className="mx-auto mt-12 max-w-5xl">
+                <div className="relative">
+                  {/* Connecting line */}
+                  <div className="absolute left-[7%] right-[7%] top-6 hidden h-px bg-gradient-to-r from-slate-300 via-indigo-400 to-purple-400 lg:block" />
 
-                      <div className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+                  {/* Six sections */}
+                  <div className="grid grid-cols-2 gap-7 sm:grid-cols-3 lg:grid-cols-6 lg:gap-2">
+                    {featureSections.map((section) => {
+                      const style = colorStyles[section.color];
 
-                      <div className="relative">
-                        <div className="flex items-center justify-between">
-                          <p
-                            className={`text-xs font-black uppercase tracking-[0.18em] ${style.eyebrow}`}
-                          >
-                            {section.eyebrow}
-                          </p>
-
+                      return (
+                        <a
+                          key={section.id}
+                          href={`#${section.id}`}
+                          className="group relative"
+                        >
                           <div
-                            className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-black ${style.number}`}
+                            className={`relative z-10 mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xs font-black shadow-lg transition duration-300 group-hover:scale-110 ${style.navNumber}`}
                           >
                             {section.number}
+
+                            <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-indigo-400/20" />
+                          </div>
+
+                          <p className="mt-3 text-xs font-black leading-4 text-slate-700 transition group-hover:text-indigo-600">
+                            {section.eyebrow}
+                          </p>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =====================================================
+            FEATURE SECTIONS
+        ===================================================== */}
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:py-20">
+            {featureSections.map((section, sectionIndex) => {
+              const style = colorStyles[section.color];
+
+              return (
+                <div key={section.id}>
+                  <section
+                    id={section.id}
+                    className="scroll-mt-28 overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm transition duration-300 hover:shadow-xl"
+                  >
+                    <div className="grid lg:grid-cols-[0.36fr_0.64fr]">
+                      {/* Left panel */}
+                      <div
+                        className={`relative overflow-hidden p-7 text-white sm:p-9 ${style.panel}`}
+                      >
+                        <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+
+                        <div className="absolute -bottom-20 -left-16 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+
+                        <div className="relative">
+                          <div className="flex items-center justify-between">
+                            <p
+                              className={`text-xs font-black uppercase tracking-[0.18em] ${style.eyebrow}`}
+                            >
+                              {section.eyebrow}
+                            </p>
+
+                            <div
+                              className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-black ${style.number}`}
+                            >
+                              {section.number}
+                            </div>
+                          </div>
+
+                          <h2 className="mt-5 text-2xl font-black leading-tight sm:text-3xl">
+                            {section.title}
+                          </h2>
+
+                          <p className="mt-4 text-sm leading-7 text-white/75">
+                            {section.description}
+                          </p>
+
+                          <div className="mt-8 flex items-center gap-2 text-xs font-bold text-white/50">
+                            <span className="h-px w-8 bg-white/30" />
+                            FEATURE AREA {section.number}
                           </div>
                         </div>
+                      </div>
 
-                        <h2 className="mt-5 text-2xl font-black leading-tight sm:text-3xl">
-                          {section.title}
-                        </h2>
+                      {/* Feature cards */}
+                      <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7">
+                        {section.features.map((feature, featureIndex) => {
+                          const Icon = feature.icon;
 
-                        <p className="mt-4 text-sm leading-7 text-white/75">
-                          {section.description}
-                        </p>
+                          return (
+                            <article
+                              key={feature.title}
+                              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-5 transition duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg"
+                            >
+                              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-indigo-100/50 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
 
-                        <div className="mt-8 flex items-center gap-2 text-xs font-bold text-white/50">
-                          <span className="h-px w-8 bg-white/30" />
-                          FEATURE AREA {section.number}
+                              <div className="relative">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition duration-300 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white">
+                                    <Icon />
+                                  </div>
+
+                                  <span className="text-xs font-black text-slate-300">
+                                    {String(featureIndex + 1).padStart(2, "0")}
+                                  </span>
+                                </div>
+
+                                <h3 className="mt-5 font-black text-slate-900">
+                                  {feature.title}
+                                </h3>
+
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                  {feature.text}
+                                </p>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Animated section connector */}
+                  {sectionIndex < featureSections.length - 1 && (
+                    <div className="flex h-16 items-center justify-center">
+                      <div className="relative flex h-full w-8 items-center justify-center">
+                        <div
+                          className={`absolute h-full w-px bg-gradient-to-b ${style.line}`}
+                        />
+
+                        <span className="absolute top-1 h-2 w-2 animate-bounce rounded-full bg-indigo-500" />
+
+                        <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border border-indigo-100 bg-white text-xs text-indigo-500 shadow-sm">
+                          <FaArrowDown />
                         </div>
                       </div>
                     </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-                    {/* Feature cards */}
-                    <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-7">
-                      {section.features.map((feature, featureIndex) => {
-                        const Icon = feature.icon;
-
-                        return (
-                          <article
-                            key={feature.title}
-                            className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-5 transition duration-300 hover:-translate-y-1 hover:border-indigo-200 hover:bg-indigo-50/40 hover:shadow-lg"
-                          >
-                            <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-indigo-100/50 opacity-0 blur-2xl transition duration-300 group-hover:opacity-100" />
-
-                            <div className="relative">
-                              <div className="flex items-start justify-between">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-indigo-600 shadow-sm transition duration-300 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white">
-                                  <Icon />
-                                </div>
-
-                                <span className="text-xs font-black text-slate-300">
-                                  {String(featureIndex + 1).padStart(2, "0")}
-                                </span>
-                              </div>
-
-                              <h3 className="mt-5 font-black text-slate-900">
-                                {feature.title}
-                              </h3>
-
-                              <p className="mt-2 text-sm leading-6 text-slate-600">
-                                {feature.text}
-                              </p>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </section>
-
-                {/* Animated section connector */}
-                {sectionIndex < featureSections.length - 1 && (
-                  <div className="flex h-16 items-center justify-center">
-                    <div className="relative flex h-full w-8 items-center justify-center">
-                      <div
-                        className={`absolute h-full w-px bg-gradient-to-b ${style.line}`}
-                      />
-
-                      <span className="absolute top-1 h-2 w-2 animate-bounce rounded-full bg-indigo-500" />
-
-                      <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border border-indigo-100 bg-white text-xs text-indigo-500 shadow-sm">
-                        <FaArrowDown />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* =====================================================
+          {/* =====================================================
             JUPYTER / PYTHON HIGHLIGHT
         ===================================================== */}
-        <section className="border-y border-slate-200 bg-slate-950 text-white">
-          <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
-            <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-300">
-                  <FaPython />
-                  Separate Python Tool
+          <section className="border-y border-slate-200 bg-slate-950 text-white">
+            <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20">
+              <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-300">
+                    <FaPython />
+                    Separate Python Tool
+                  </div>
+
+                  <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+                    Jupyter Tools for Python assignments
+                  </h2>
+
+                  <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
+                    Jupyter Tools is a separate workflow inside AssignCraft. It
+                    helps turn assignment questions into Jupyter Notebook files
+                    and continue existing notebooks.
+                  </p>
                 </div>
 
-                <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
-                  Jupyter Tools for Python assignments
-                </h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    ["01", "Create", "PDF / DOCX → .ipynb"],
+                    ["02", "Continue", "Existing .ipynb + questions"],
+                    ["03", "Export", ".ipynb → PDF"],
+                  ].map(([number, title, text]) => (
+                    <div
+                      key={number}
+                      className="rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-indigo-400/30 hover:bg-white/10"
+                    >
+                      <span className="text-xs font-black text-indigo-400">
+                        {number}
+                      </span>
 
-                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300">
-                  Jupyter Tools is a separate workflow inside AssignCraft. It
-                  helps turn assignment questions into Jupyter Notebook files
-                  and continue existing notebooks.
-                </p>
-              </div>
+                      <h3 className="mt-3 font-black text-white">{title}</h3>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  ["01", "Create", "PDF / DOCX → .ipynb"],
-                  ["02", "Continue", "Existing .ipynb + questions"],
-                  ["03", "Export", ".ipynb → PDF"],
-                ].map(([number, title, text]) => (
-                  <div
-                    key={number}
-                    className="rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-indigo-400/30 hover:bg-white/10"
-                  >
-                    <span className="text-xs font-black text-indigo-400">
-                      {number}
-                    </span>
-
-                    <h3 className="mt-3 font-black text-white">{title}</h3>
-
-                    <p className="mt-2 text-xs leading-5 text-slate-400">
-                      {text}
-                    </p>
-                  </div>
-                ))}
+                      <p className="mt-2 text-xs leading-5 text-slate-400">
+                        {text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* =====================================================
+          {/* =====================================================
             FINAL CTA
         ===================================================== */}
-        <section className="bg-white">
-          <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-20">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-xl text-white shadow-lg shadow-indigo-200">
-              <FaCheckCircle />
+          <section className="bg-white">
+            <div className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-20">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-xl text-white shadow-lg shadow-indigo-200">
+                <FaCheckCircle />
+              </div>
+
+              <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
+                One platform
+              </p>
+
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                More than just an assignment generator.
+              </h2>
+
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                AssignCraft brings question processing, assignment building,
+                document customization, document output, and Python notebook
+                tools together in one place.
+              </p>
             </div>
+          </section>
+        </main>
 
-            <p className="mt-6 text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-              One platform
-            </p>
-
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              More than just an assignment generator.
-            </h2>
-
-            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              AssignCraft brings question processing, assignment building,
-              document customization, document output, and Python notebook tools
-              together in one place.
-            </p>
-          </div>
-        </section>
-      </main>
-
-      <SiteFooter />
-    </div>
+        <SiteFooter />
+      </div>
+    </>
   );
 }

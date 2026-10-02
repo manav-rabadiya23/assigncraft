@@ -1,3 +1,5 @@
+import SEO from "../components/SEO";
+
 import { useState } from "react";
 
 import Header from "../components/Header";
@@ -477,6 +479,22 @@ export default function JupyterToolsPage() {
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <Header />
+      <SEO
+        title="Jupyter Tools – Python Assignment Notebook Generator"
+        description="Create Python Jupyter Notebook assignments from PDF or DOCX question files with AssignCraft. Review questions, create Python code cells, continue existing notebooks and convert notebooks to PDF."
+        path="/jupyter-tools"
+        keywords="Jupyter assignment generator, Python assignment generator, PDF to Jupyter Notebook, DOCX to Jupyter Notebook, Python notebook generator, ipynb assignment generator, notebook to PDF"
+        breadcrumbs={[
+          {
+            name: "Home",
+            path: "/",
+          },
+          {
+            name: "Jupyter Tools",
+            path: "/jupyter-tools",
+          },
+        ]}
+      />
 
       <header className="bg-gradient-to-br from-indigo-700 via-violet-700 to-purple-800 text-white">
         <div className="mx-auto max-w-5xl px-4 pb-20 pt-12 text-center">
@@ -487,7 +505,9 @@ export default function JupyterToolsPage() {
           <h1 className="text-4xl font-bold sm:text-5xl">Jupyter Tools</h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-indigo-100">
-            Create, continue and export Jupyter Notebook assignments.
+            Create and continue Python Jupyter Notebook assignments from PDF or
+            DOCX question files, review detected questions, add Python code
+            cells and convert completed notebooks to PDF.
           </p>
         </div>
       </header>

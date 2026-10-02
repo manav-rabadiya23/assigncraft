@@ -31,7 +31,7 @@
          FAVICON
     ========================== -->
 
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
 
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
 
@@ -65,9 +65,11 @@
 
     <meta property="og:site_name" content="AssignCraft" />
 
+    <meta property="og:locale" content="en_IN" />
+
     <meta
       property="og:image"
-      content="https://assigncraft.vercel.app/icon-512.png"
+      content="https://assigncraft.vercel.app/assigncraft-logo.png"
     />
 
     <meta property="og:image:alt" content="AssignCraft logo" />
@@ -90,13 +92,15 @@
 
     <meta
       name="twitter:image"
-      content="https://assigncraft.vercel.app/icon-512.png"
+      content="https://assigncraft.vercel.app/assigncraft-logo.png"
     />
 
     <meta name="twitter:image:alt" content="AssignCraft logo" />
 
+    <meta name="twitter:creator" content="@ManavRabadiya" />
+
     <!-- =========================
-         ORGANIZATION + LOGO
+         ORGANIZATION
     ========================== -->
 
     <script type="application/ld+json">
@@ -106,7 +110,10 @@
         "@id": "https://assigncraft.vercel.app/#organization",
         "name": "AssignCraft",
         "url": "https://assigncraft.vercel.app/",
-        "logo": "https://assigncraft.vercel.app/assigncraft-logo.png",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://assigncraft.vercel.app/assigncraft-logo.png"
+        },
         "description": "AssignCraft is an assignment generator for processing questions from PDF and Word files, customizing assignment documents, and exporting them to Word or PDF.",
         "founder": {
           "@type": "Person",
@@ -141,6 +148,24 @@
           "@type": "Offer",
           "price": "0",
           "priceCurrency": "INR"
+        }
+      }
+    </script>
+
+    <!-- =========================
+         WEBSITE
+    ========================== -->
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://assigncraft.vercel.app/#website",
+        "name": "AssignCraft",
+        "alternateName": "AssignCraft",
+        "url": "https://assigncraft.vercel.app/",
+        "publisher": {
+          "@id": "https://assigncraft.vercel.app/#organization"
         }
       }
     </script>

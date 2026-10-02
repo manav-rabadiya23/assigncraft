@@ -1,24 +1,19 @@
 import { useMemo, useState } from "react";
 import Header from "../components/Header";
 import SiteFooter from "../components/SiteFooter";
-import { extractTextFromDocx } from "../utils/docxExtractor";
-import { extractTextFromPdf } from "../utils/pdfExtractor";
-import { detectQuestions } from "../utils/questionParser";
-import {
-  compareTeacherQuestionsWithCompletedAssignment,
-  generateContinuedAssignment,
-  inspectCompletedAssignment,
-} from "../utils/continueAssignmentGenerator";
+import SEO from "../components/SEO";
 
-function makeFileLabel(file) {
-  if (!file) return "No file selected";
-  return file.name;
-}
+import {
+  inspectCompletedAssignment,
+  extractQuestionsFromFile,
+  compareQuestionsWithCompletedAssignment,
+  generateContinuedAssignment,
+} from "../utils/continueAssignment";
 
 export default function ContinueAssignmentPage() {
   const [completedFile, setCompletedFile] = useState(null);
   const [completedInspection, setCompletedInspection] = useState(null);
-  const [lastQuestionNumber, setLastQuestionNumber] = useState(null);
+  const [lastQuestionNumber, setLastQuestionNumber] = useState(0);
   const [existingMediaCount, setExistingMediaCount] = useState(0);
 
   const [newQuestionsFile, setNewQuestionsFile] = useState(null);
@@ -28,447 +23,621 @@ export default function ContinueAssignmentPage() {
   const [isReadingOld, setIsReadingOld] = useState(false);
   const [isReadingNew, setIsReadingNew] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+
   const [message, setMessage] = useState("");
 
   const questionRefs = useMemo(() => ({ current: [] }), []);
 
-  const chooseCompletedAssignment = async (event) => {
-    const file = event.target.files?.[0] || null;
+  const chooseCompletedAssignment = async (file) => {
+    if (!file) return;
 
-    setCompletedFile(null);
+    setCompletedFile(file);
     setCompletedInspection(null);
-    setLastQuestionNumber(null);
-    setExistingMediaCount(0);
-    setNewQuestionsFile(null);
     setQuestions([]);
     setComparison(null);
     setMessage("");
-
-    if (!file) return;
+    setIsReadingOld(true);
 
     try {
-      setIsReadingOld(true);
+      const result = await inspectCompletedAssignment(file);
 
-      const inspection = await inspectCompletedAssignment(file);
-
-      setCompletedFile(file);
-      setCompletedInspection(inspection);
-      setLastQuestionNumber(inspection.lastQuestionNumber);
-      setExistingMediaCount(inspection.mediaCount);
+      setCompletedInspection(result);
+      setLastQuestionNumber(result.lastQuestionNumber || 0);
+      setExistingMediaCount(result.mediaCount || 0);
 
       setMessage(
-        `Completed assignment loaded. ${inspection.questionCount} existing question(s) found. Last question: Q-${inspection.lastQuestionNumber}. Existing images: ${inspection.mediaCount}.`,
+        `Existing assignment loaded. Last question: ${
+          result.lastQuestionNumber || 0
+        }.`,
       );
     } catch (error) {
       console.error(error);
-      setMessage(error.message || "Unable to read the completed assignment.");
-      event.target.value = "";
+      setMessage(error?.message || "Unable to read the completed assignment.");
     } finally {
       setIsReadingOld(false);
     }
   };
 
-  const chooseNewQuestionsFile = async (event) => {
-    const file = event.target.files?.[0] || null;
-
-    setNewQuestionsFile(null);
-    setQuestions([]);
-    setComparison(null);
-    setMessage("");
-
+  const chooseNewQuestionsFile = async (file) => {
     if (!file) return;
 
     if (!completedFile || !completedInspection) {
-      setMessage("Step 1: Upload your completed assignment Word file first.");
-      event.target.value = "";
+      setMessage("Please upload your completed assignment first.");
       return;
     }
 
-    const extension = file.name.split(".").pop()?.toLowerCase();
+    const isPdf =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
 
-    if (!["pdf", "docx"].includes(extension)) {
-      setMessage("Teacher question file must be a PDF or DOCX file.");
-      event.target.value = "";
+    const isDocx =
+      file.type ===
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.name.toLowerCase().endsWith(".docx");
+
+    if (!isPdf && !isDocx) {
+      setMessage("Please select a PDF or DOCX file.");
       return;
     }
+
+    setNewQuestionsFile(file);
+    setQuestions([]);
+    setComparison(null);
+    setMessage("");
+    setIsReadingNew(true);
 
     try {
-      setIsReadingNew(true);
+      const extracted = await extractQuestionsFromFile(file);
 
-      let text = "";
+      const detectedQuestions = Array.isArray(extracted)
+        ? extracted
+        : extracted?.questions || [];
 
-      if (extension === "pdf") {
-        const result = await extractTextFromPdf(file);
-        text = result.text || "";
-      } else {
-        text = await extractTextFromDocx(file);
-      }
-
-      const detected = detectQuestions(text);
-      const teacherQuestions = detected.questions || [];
-
-      if (!teacherQuestions.length) {
-        throw new Error(
-          "The teacher file was read, but no questions were detected. Please check the file.",
-        );
-      }
-
-      const result = compareTeacherQuestionsWithCompletedAssignment(
+      const result = await compareQuestionsWithCompletedAssignment(
         completedInspection,
-        teacherQuestions,
+        detectedQuestions,
       );
 
-      setNewQuestionsFile(file);
       setComparison(result);
-      setQuestions(result.newQuestions);
 
-      if (result.newQuestionCount === 0) {
-        setMessage(
-          `${result.totalTeacherQuestions} question(s) detected. ${result.duplicateCount} already exist in your completed Word assignment and were skipped. No new questions were found.`,
-        );
-      } else {
-        setMessage(
-          `${result.totalTeacherQuestions} question(s) detected. ${result.duplicateCount} existing question(s) skipped. ${result.newQuestionCount} new question(s) will be added from Q-${lastQuestionNumber + 1}.`,
-        );
-      }
+      setQuestions(result.newQuestions || []);
+
+      setMessage(`${result.newQuestions?.length || 0} new question(s) found.`);
     } catch (error) {
       console.error(error);
-      setMessage(error.message || "Unable to read the teacher question file.");
-      event.target.value = "";
+      setMessage(error?.message || "Unable to process the new question file.");
     } finally {
       setIsReadingNew(false);
     }
   };
 
   const updateQuestion = (index, value) => {
-    setQuestions((current) =>
-      current.map((question, questionIndex) =>
-        questionIndex === index ? value : question,
+    setQuestions((previous) =>
+      previous.map((question, questionIndex) =>
+        questionIndex === index
+          ? {
+              ...question,
+              text: typeof question === "string" ? value : value,
+            }
+          : question,
       ),
     );
   };
 
   const insertQuestion = (index) => {
-    setQuestions((current) => {
-      const next = [...current];
-      next.splice(index, 0, "");
+    setQuestions((previous) => {
+      const next = [...previous];
+
+      next.splice(index, 0, {
+        text: "",
+      });
+
       return next;
     });
   };
 
   const deleteQuestion = (index) => {
-    setQuestions((current) =>
-      current.filter((_, questionIndex) => questionIndex !== index),
+    setQuestions((previous) =>
+      previous.filter((_, questionIndex) => questionIndex !== index),
     );
   };
 
   const moveQuestion = (index, direction) => {
-    const target = direction === "up" ? index - 1 : index + 1;
+    setQuestions((previous) => {
+      const next = [...previous];
+      const targetIndex = index + direction;
 
-    if (target < 0 || target >= questions.length) return;
+      if (targetIndex < 0 || targetIndex >= next.length) {
+        return previous;
+      }
 
-    setQuestions((current) => {
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
+      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+
       return next;
     });
   };
 
   const generate = async () => {
-    if (!completedFile) {
-      setMessage("Step 1: Upload your completed assignment Word file.");
+    if (!completedFile || !completedInspection) {
+      setMessage("Please upload the completed assignment first.");
       return;
     }
 
-    if (!newQuestionsFile) {
-      setMessage("Step 2: Upload the teacher's latest PDF or DOCX file.");
+    if (!newQuestionsFile || questions.length === 0) {
+      setMessage("Please upload a file containing new questions.");
       return;
     }
 
-    if (!questions.some((question) => question.trim())) {
-      setMessage(
-        "No new questions are available to add. Existing duplicate questions were already skipped.",
-      );
-      return;
-    }
+    setIsGenerating(true);
+    setMessage("");
 
     try {
-      setIsGenerating(true);
-      setMessage(
-        `Creating final document. Existing Q-1 to Q-${lastQuestionNumber} will stay unchanged.`,
-      );
-
-      await generateContinuedAssignment({
+      const result = await generateContinuedAssignment({
         completedFile,
+        completedInspection,
         questions,
-        lastQuestionNumber,
+        startQuestionNumber: lastQuestionNumber + 1,
       });
 
-      setMessage(
-        `Done. Existing Q-1 to Q-${lastQuestionNumber}, including code, output, images and formatting, were preserved. ${questions.filter((question) => question.trim()).length} new question(s) were added from Q-${lastQuestionNumber + 1}.`,
-      );
+      if (result?.blob) {
+        const url = URL.createObjectURL(result.blob);
+
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = result.fileName || "continued-assignment.docx";
+
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+
+        URL.revokeObjectURL(url);
+      }
+
+      setMessage("Continued assignment generated successfully.");
     } catch (error) {
       console.error(error);
       setMessage(
-        error.message || "Unable to generate the continued assignment.",
+        error?.message || "Unable to generate the continued assignment.",
       );
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const displayStartNumber = Number.isInteger(lastQuestionNumber)
-    ? lastQuestionNumber + 1
-    : 1;
+  const displayStartNumber = lastQuestionNumber + 1;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <Header />
+    <>
+      <SEO
+        title="Continue Assignment – Add New Questions to an Existing DOCX"
+        description="Continue an existing assignment with AssignCraft. Upload your completed DOCX and the teacher's latest PDF or DOCX question file to detect duplicates and add only new questions."
+        path="/continue-assignment"
+        keywords="continue assignment, update existing assignment, add questions to DOCX, continue Word assignment, duplicate question detection, assignment continuation tool"
+        breadcrumbs={[
+          {
+            name: "Home",
+            path: "/",
+          },
+          {
+            name: "Continue Assignment",
+            path: "/continue-assignment",
+          },
+        ]}
+      />
 
-      <header className="bg-gradient-to-br from-indigo-700 via-violet-700 to-purple-800 text-white">
-        <div className="mx-auto max-w-5xl px-4 pb-20 pt-12 text-center">
-          <div className="mb-4 inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-indigo-100">
-            Continue an Existing Assignment
-          </div>
-          <h1 className="text-4xl font-bold sm:text-5xl">
-            Continue Assignment
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-indigo-100">
-            Upload your completed Word assignment and the teacher&apos;s latest
-            question file. AssignCraft skips repeated questions and adds only
-            the new ones.
-          </p>
-        </div>
-      </header>
+      <div className="min-h-screen bg-slate-100 text-slate-900">
+        <Header />
 
-      <main className="mx-auto -mt-10 max-w-5xl space-y-6 px-4 pb-12">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
-          <div className="mb-5 flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 font-bold text-white">
-              1
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">Upload Completed Assignment</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Upload the DOCX that already contains your completed questions,
-                code and outputs. AssignCraft will not rebuild this document.
+        {/* Hero */}
+        <section className="border-b border-slate-200 bg-white">
+          <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+            <div className="max-w-3xl">
+              <div className="mb-4 inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+                Continue an Existing Assignment
+              </div>
+
+              <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+                Continue an Existing Assignment with New Questions
+              </h1>
+
+              <p className="mt-5 text-lg leading-8 text-slate-600">
+                Upload your completed Word assignment and the teacher&apos;s
+                latest PDF or DOCX question file. AssignCraft detects repeated
+                questions and lets you add only the new questions while
+                preserving your existing work.
               </p>
             </div>
           </div>
-
-          <label className="block cursor-pointer rounded-2xl border-2 border-dashed border-indigo-300 bg-indigo-50/60 p-7 text-center">
-            <input
-              type="file"
-              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              className="hidden"
-              disabled={isReadingOld || isGenerating}
-              onChange={chooseCompletedAssignment}
-            />
-            <div className="font-bold text-indigo-700">
-              {isReadingOld
-                ? "Reading completed assignment..."
-                : "Choose Completed DOCX"}
-            </div>
-            <div className="mt-2 text-sm text-slate-500">
-              {makeFileLabel(completedFile)}
-            </div>
-          </label>
-
-          {completedFile && Number.isInteger(lastQuestionNumber) && (
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              <b>Ready:</b> {completedInspection?.questionCount || 0} existing
-              question(s) found. Last existing question is Q-
-              {lastQuestionNumber}.
-              {existingMediaCount > 0
-                ? ` ${existingMediaCount} existing image(s) will remain unchanged.`
-                : ""}
-            </div>
-          )}
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
-          <div className="mb-5 flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-600 font-bold text-white">
-              2
-            </div>
-            <div>
-              <h2 className="text-xl font-bold">
-                Upload Teacher&apos;s Latest Questions
-              </h2>
-              <p className="mt-1 text-sm text-slate-500">
-                The PDF/DOCX may contain old and new questions together.
-                AssignCraft will detect the repeated questions and skip them.
-              </p>
-            </div>
+        {/* Main content */}
+        <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Existing assignment */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  1. Upload Completed Assignment
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Select the Word assignment you have already completed.
+                  AssignCraft uses it to identify existing questions and
+                  preserve your previous work.
+                </p>
+              </div>
+
+              <label
+                htmlFor="completed-assignment"
+                className="flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-indigo-400 hover:bg-indigo-50"
+              >
+                <input
+                  id="completed-assignment"
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={(event) =>
+                    chooseCompletedAssignment(event.target.files?.[0])
+                  }
+                />
+
+                <div className="text-4xl">📄</div>
+
+                <p className="mt-3 font-medium text-slate-900">
+                  {completedFile ? completedFile.name : "Choose completed DOCX"}
+                </p>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Word document (.docx)
+                </p>
+              </label>
+
+              {isReadingOld && (
+                <div className="mt-4 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+                  Reading your completed assignment...
+                </div>
+              )}
+
+              {completedInspection && (
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Last Question
+                    </p>
+
+                    <p className="mt-1 text-2xl font-bold text-slate-900">
+                      {lastQuestionNumber}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Existing Media
+                    </p>
+
+                    <p className="mt-1 text-2xl font-bold text-slate-900">
+                      {existingMediaCount}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* New questions */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold text-slate-900">
+                  2. Upload Latest Questions
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Upload the teacher&apos;s latest PDF or DOCX file. AssignCraft
+                  compares the questions with your completed assignment.
+                </p>
+              </div>
+
+              <label
+                htmlFor="new-questions"
+                className={`flex min-h-48 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition ${
+                  completedInspection
+                    ? "border-slate-300 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50"
+                    : "cursor-not-allowed border-slate-200 bg-slate-100 opacity-60"
+                }`}
+              >
+                <input
+                  id="new-questions"
+                  type="file"
+                  accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  className="hidden"
+                  disabled={!completedInspection}
+                  onChange={(event) =>
+                    chooseNewQuestionsFile(event.target.files?.[0])
+                  }
+                />
+
+                <div className="text-4xl">📚</div>
+
+                <p className="mt-3 font-medium text-slate-900">
+                  {newQuestionsFile
+                    ? newQuestionsFile.name
+                    : "Choose PDF or DOCX"}
+                </p>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Teacher&apos;s latest question file
+                </p>
+              </label>
+
+              {!completedInspection && (
+                <p className="mt-3 text-sm text-amber-600">
+                  Upload the completed assignment first.
+                </p>
+              )}
+
+              {isReadingNew && (
+                <div className="mt-4 rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+                  Detecting and comparing questions...
+                </div>
+              )}
+            </section>
           </div>
 
-          <label
-            className={`block rounded-2xl border-2 border-dashed p-7 text-center ${
-              completedFile
-                ? "cursor-pointer border-violet-300 bg-violet-50/60"
-                : "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
-            }`}
-          >
-            <input
-              type="file"
-              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              className="hidden"
-              disabled={!completedFile || isReadingNew || isGenerating}
-              onChange={chooseNewQuestionsFile}
-            />
-            <div className="font-bold text-violet-700">
-              {!completedFile
-                ? "Upload Step 1 first"
-                : isReadingNew
-                  ? "Reading and comparing questions..."
-                  : "Choose Latest PDF / DOCX"}
-            </div>
-            <div className="mt-2 text-sm text-slate-500">
-              {makeFileLabel(newQuestionsFile)}
-            </div>
-          </label>
-
+          {/* Comparison */}
           {comparison && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <div className="text-xl font-bold text-slate-900">
-                  {comparison.totalTeacherQuestions}
+            <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Question Comparison
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-600">
+                    AssignCraft compared the latest questions with your
+                    completed assignment.
+                  </p>
                 </div>
-                <div className="text-xs text-slate-500">
-                  Questions in teacher file
+
+                <div className="rounded-xl bg-indigo-50 px-4 py-3 text-center">
+                  <p className="text-xs font-medium uppercase tracking-wide text-indigo-600">
+                    New Questions
+                  </p>
+
+                  <p className="text-2xl font-bold text-indigo-700">
+                    {questions.length}
+                  </p>
                 </div>
               </div>
 
-              <div className="rounded-xl bg-amber-50 p-4">
-                <div className="text-xl font-bold text-amber-800">
-                  {comparison.duplicateCount}
-                </div>
-                <div className="text-xs text-amber-700">Existing / skipped</div>
-              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Total detected</p>
 
-              <div className="rounded-xl bg-emerald-50 p-4">
-                <div className="text-xl font-bold text-emerald-800">
-                  {comparison.newQuestionCount}
+                  <p className="mt-1 text-2xl font-bold">
+                    {comparison.totalQuestions ??
+                      comparison.allQuestions?.length ??
+                      0}
+                  </p>
                 </div>
-                <div className="text-xs text-emerald-700">
-                  New questions to add
+
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">Existing / duplicate</p>
+
+                  <p className="mt-1 text-2xl font-bold">
+                    {comparison.duplicateQuestions?.length ??
+                      comparison.duplicates?.length ??
+                      0}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 p-4">
+                  <p className="text-sm text-slate-500">New</p>
+
+                  <p className="mt-1 text-2xl font-bold text-indigo-600">
+                    {questions.length}
+                  </p>
                 </div>
               </div>
-            </div>
+            </section>
           )}
-        </section>
 
-        {questions.length > 0 && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
-            <h2 className="text-xl font-bold">Verify New Questions</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Only questions that are not already in your completed assignment
-              are shown here. They will be numbered Q-{displayStartNumber} to Q-
-              {displayStartNumber + questions.length - 1}.
-            </p>
+          {/* Questions */}
+          <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  3. Review New Questions
+                </h2>
 
-            <div className="mt-5 space-y-4">
-              {questions.map((question, index) => (
-                <div
-                  key={index}
-                  ref={(element) => {
-                    questionRefs.current[index] = element;
-                  }}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <div className="mb-2 font-bold text-indigo-700">
-                    Q-{displayStartNumber + index}
-                  </div>
-                  <textarea
-                    rows="4"
-                    value={question}
-                    onChange={(event) =>
-                      updateQuestion(index, event.target.value)
-                    }
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-indigo-500"
-                  />
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => insertQuestion(index)}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
+                <p className="mt-1 text-sm text-slate-600">
+                  New questions will continue from question number{" "}
+                  <span className="font-semibold text-slate-900">
+                    {displayStartNumber}
+                  </span>
+                  .
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => insertQuestion(questions.length)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                + Add Question
+              </button>
+            </div>
+
+            {questions.length === 0 ? (
+              <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center">
+                <p className="font-medium text-slate-700">
+                  No new questions to review.
+                </p>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Upload the latest teacher question file to detect new
+                  questions.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                {questions.map((question, index) => {
+                  const questionText =
+                    typeof question === "string"
+                      ? question
+                      : question?.text || "";
+
+                  return (
+                    <div
+                      key={`question-${index}`}
+                      ref={(element) => {
+                        questionRefs.current[index] = element;
+                      }}
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-4"
                     >
-                      + Before
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => insertQuestion(index + 1)}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-semibold"
-                    >
-                      + After
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === 0}
-                      onClick={() => moveQuestion(index, "up")}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
-                    >
-                      ↑ Up
-                    </button>
-                    <button
-                      type="button"
-                      disabled={index === questions.length - 1}
-                      onClick={() => moveQuestion(index, "down")}
-                      className="rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
-                    >
-                      ↓ Down
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteQuestion(index)}
-                      className="rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded-lg bg-indigo-100 px-3 py-1 text-sm font-semibold text-indigo-700">
+                            Q{displayStartNumber + index}
+                          </span>
+
+                          <span className="text-sm text-slate-500">
+                            New question
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => moveQuestion(index, -1)}
+                            disabled={index === 0}
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            ↑
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => moveQuestion(index, 1)}
+                            disabled={index === questions.length - 1}
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            ↓
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => insertQuestion(index)}
+                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm"
+                          >
+                            +
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => deleteQuestion(index)}
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      <textarea
+                        value={questionText}
+                        onChange={(event) =>
+                          updateQuestion(index, event.target.value)
+                        }
+                        rows={4}
+                        placeholder="Enter question..."
+                        className="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Generate */}
+          <section className="mt-8 rounded-2xl border border-indigo-200 bg-indigo-50 p-6">
+            <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  4. Generate Continued Assignment
+                </h2>
+
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                  Existing questions, code, output, images and formatting are
+                  preserved. The reviewed new questions are added after the
+                  existing assignment.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={generate}
+                disabled={
+                  isGenerating || !completedInspection || questions.length === 0
+                }
+                className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGenerating ? "Generating..." : "Generate Assignment"}
+              </button>
+            </div>
+
+            {message && (
+              <div className="mt-5 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm text-slate-700">
+                {message}
+              </div>
+            )}
+          </section>
+
+          {/* Workflow information */}
+          <section className="mt-10">
+            <div className="grid gap-5 md:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="text-2xl">📄</div>
+
+                <h3 className="mt-3 font-semibold text-slate-900">
+                  Preserve Existing Work
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Your completed assignment remains the base document for the
+                  continuation process.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="text-2xl">🔍</div>
+
+                <h3 className="mt-3 font-semibold text-slate-900">
+                  Detect Duplicates
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Questions from the latest teacher file are compared with the
+                  questions already present in your assignment.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                <div className="text-2xl">➕</div>
+
+                <h3 className="mt-3 font-semibold text-slate-900">
+                  Add New Questions
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Review the detected new questions and add them to the
+                  assignment with continued numbering.
+                </p>
+              </div>
             </div>
           </section>
-        )}
+        </main>
 
-        {comparison && comparison.newQuestionCount === 0 && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
-            All detected questions already exist in your completed assignment.
-            Nothing needs to be added.
-          </div>
-        )}
-
-        {message && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 shadow">
-            {message}
-          </div>
-        )}
-
-        <button
-          type="button"
-          disabled={
-            !completedFile ||
-            !newQuestionsFile ||
-            questions.length === 0 ||
-            isGenerating
-          }
-          onClick={generate}
-          className="w-full rounded-2xl bg-indigo-600 px-6 py-4 text-base font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isGenerating
-            ? "Generating Continued Assignment..."
-            : "Generate Continued Word File"}
-        </button>
-
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          <b>Important:</b> The completed DOCX is preserved as-is. AssignCraft
-          compares the teacher&apos;s latest questions with the existing
-          assignment, skips duplicates, and appends only the new questions.
-        </div>
-      </main>
-
-      <SiteFooter />
-    </div>
+        <SiteFooter />
+      </div>
+    </>
   );
 }

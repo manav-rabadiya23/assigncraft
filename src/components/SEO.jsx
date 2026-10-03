@@ -1,11 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 const SITE_URL = "https://assigncraft.vercel.app";
 const DEFAULT_IMAGE = `${SITE_URL}/assigncraft-logo.png`;
 
-function removeExistingJsonLd() {
+const EMPTY_ARRAY = [];
+
+function removeExistingSeoElements() {
   document
-    .querySelectorAll('script[data-assigncraft-seo="true"]')
+    .querySelectorAll(
+      '[data-assigncraft-meta="true"], [data-assigncraft-seo="true"]',
+    )
     .forEach((element) => element.remove());
 }
 
@@ -16,24 +20,43 @@ export default function SEO({
   image = DEFAULT_IMAGE,
   type = "website",
   keywords = "",
-  breadcrumbs = [],
-  schema = [],
+  breadcrumbs = EMPTY_ARRAY,
+  schema = EMPTY_ARRAY,
 }) {
+  const breadcrumbsKey = useMemo(
+    () => JSON.stringify(breadcrumbs),
+    [breadcrumbs],
+  );
+
+  const schemaKey = useMemo(() => JSON.stringify(schema), [schema]);
+
   useEffect(() => {
     const canonicalUrl = `${SITE_URL}${path}`;
 
+    // =========================
+    // PAGE TITLE
+    // =========================
+
     document.title = title;
+
+    // =========================
+    // META HELPERS
+    // =========================
 
     const setMeta = (attribute, value, content) => {
       if (!content) return;
 
       let element = document.head.querySelector(
-        `meta[${attribute}="${value}"]`,
+        `meta[data-assigncraft-meta="true"][${attribute}="${value}"]`,
       );
 
       if (!element) {
         element = document.createElement("meta");
+
+        element.setAttribute("data-assigncraft-meta", "true");
+
         element.setAttribute(attribute, value);
+
         document.head.appendChild(element);
       }
 
@@ -41,79 +64,82 @@ export default function SEO({
     };
 
     const setLink = (rel, href) => {
-      let element = document.head.querySelector(`link[rel="${rel}"]`);
+      let element = document.head.querySelector(
+        `link[data-assigncraft-meta="true"][rel="${rel}"]`,
+      );
 
       if (!element) {
         element = document.createElement("link");
+
+        element.setAttribute("data-assigncraft-meta", "true");
+
         element.setAttribute("rel", rel);
+
         document.head.appendChild(element);
       }
 
       element.setAttribute("href", href);
     };
 
-    // Basic SEO
+    // =========================
+    // BASIC SEO
+    // =========================
+
     setMeta("name", "description", description);
+
     setMeta("name", "author", "Manav Rabadiya");
+
+    setMeta("name", "robots", "index, follow");
 
     if (keywords) {
       setMeta("name", "keywords", keywords);
     }
 
-    setMeta("name", "robots", "index, follow");
+    // =========================
+    // CANONICAL
+    // =========================
 
-    // Canonical
     setLink("canonical", canonicalUrl);
 
-    // Open Graph
+    // =========================
+    // OPEN GRAPH
+    // =========================
+
     setMeta("property", "og:type", type);
+
     setMeta("property", "og:title", title);
+
     setMeta("property", "og:description", description);
+
     setMeta("property", "og:url", canonicalUrl);
+
     setMeta("property", "og:site_name", "AssignCraft");
+
     setMeta("property", "og:image", image);
+
     setMeta("property", "og:image:alt", "AssignCraft logo");
 
-    // Twitter / X
-    setMeta("name", "twitter:card", "summary");
+    // =========================
+    // TWITTER / X
+    // =========================
+
+    setMeta("name", "twitter:card", "summary_large_image");
+
     setMeta("name", "twitter:title", title);
+
     setMeta("name", "twitter:description", description);
+
     setMeta("name", "twitter:image", image);
+
     setMeta("name", "twitter:image:alt", "AssignCraft logo");
 
-    // JSON-LD
-    removeExistingJsonLd();
+    // =========================
+    // PAGE JSON-LD
+    // =========================
 
-    const websiteSchema = {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "@id": `${SITE_URL}/#website`,
-      name: "AssignCraft",
-      alternateName: "AssignCraft",
-      url: SITE_URL,
-      publisher: {
-        "@id": `${SITE_URL}/#organization`,
-      },
-    };
-
-    const organizationSchema = {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "@id": `${SITE_URL}/#organization`,
-      name: "AssignCraft",
-      alternateName: "AssignCraft",
-      url: SITE_URL,
-      logo: {
-        "@type": "ImageObject",
-        url: DEFAULT_IMAGE,
-      },
-      description:
-        "AssignCraft is a web-based assignment generator developed by Manav Rabadiya for creating structured assignments from PDF and Word question files.",
-      founder: {
-        "@type": "Person",
-        name: "Manav Rabadiya",
-      },
-    };
+    document
+      .querySelectorAll('script[data-assigncraft-seo="true"]')
+      .forEach((element) => element.remove());
 
     const pageSchema = {
       "@context": "https://schema.org",
@@ -122,20 +148,29 @@ export default function SEO({
       name: title,
       description,
       url: canonicalUrl,
+
       isPartOf: {
         "@id": `${SITE_URL}/#website`,
       },
+
       about: {
         "@id": `${SITE_URL}/#software`,
       },
+
       author: {
         "@type": "Person",
         name: "Manav Rabadiya",
+        url: "https://rabadiya-manav.vercel.app/",
       },
+
       publisher: {
         "@id": `${SITE_URL}/#organization`,
       },
     };
+
+    // =========================
+    // BREADCRUMB SCHEMA
+    // =========================
 
     const breadcrumbSchema =
       breadcrumbs.length > 0
@@ -151,56 +186,47 @@ export default function SEO({
           }
         : null;
 
-    const softwareSchema =
-      path === "/"
-        ? {
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            "@id": `${SITE_URL}/#software`,
-            name: "AssignCraft",
-            description:
-              "A web-based PDF, Word and assignment generator that detects questions, supports OCR, lets users customize assignment documents and exports assignments to Word or PDF.",
-            applicationCategory: "EducationalApplication",
-            applicationSubCategory: "Assignment Generator",
-            operatingSystem: "Web",
-            url: SITE_URL,
-            image: DEFAULT_IMAGE,
-            author: {
-              "@type": "Person",
-              name: "Manav Rabadiya",
-            },
-            publisher: {
-              "@id": `${SITE_URL}/#organization`,
-            },
-            offers: {
-              "@type": "Offer",
-              price: "0",
-              priceCurrency: "INR",
-            },
-          }
-        : null;
+    // =========================
+    // CUSTOM SCHEMA
+    // =========================
 
-    const allSchemas = [
-      organizationSchema,
-      websiteSchema,
-      pageSchema,
-      softwareSchema,
-      breadcrumbSchema,
-      ...schema,
-    ].filter(Boolean);
+    const allSchemas = [pageSchema, breadcrumbSchema, ...schema].filter(
+      Boolean,
+    );
 
     allSchemas.forEach((schemaObject) => {
       const script = document.createElement("script");
+
       script.type = "application/ld+json";
+
       script.setAttribute("data-assigncraft-seo", "true");
+
       script.textContent = JSON.stringify(schemaObject);
+
       document.head.appendChild(script);
     });
 
+    // =========================
+    // CLEANUP
+    // =========================
+
     return () => {
-      removeExistingJsonLd();
+      document
+        .querySelectorAll(
+          'meta[data-assigncraft-meta="true"], link[data-assigncraft-meta="true"], script[data-assigncraft-seo="true"]',
+        )
+        .forEach((element) => element.remove());
     };
-  }, [title, description, path, image, type, keywords, breadcrumbs, schema]);
+  }, [
+    title,
+    description,
+    path,
+    image,
+    type,
+    keywords,
+    breadcrumbsKey,
+    schemaKey,
+  ]);
 
   return null;
 }

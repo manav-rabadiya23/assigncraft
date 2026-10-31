@@ -15,6 +15,7 @@ import {
   WidthType,
 } from "docx";
 import { createAssignmentBaseName } from "./fileName";
+import { parseQuestionBlock, splitBold } from "./questionFormat";
 import {
   getSelectedDetailRows,
   getSelectedFooterParts,
@@ -89,6 +90,99 @@ function createCell({ text = "", width = 80, bold = false, blankLines = 0 }) {
   });
 }
 
+const BODY_FONT = "Times New Roman";
+const CODE_FONT = "Courier New";
+
+/** Indent for "• item", "◦ sub-item" and "1. step" lines of a statement. */
+function getListIndent(line) {
+  if (/^◦\s/.test(line)) return { left: 720, hanging: 240 };
+  if (/^•\s/.test(line)) return { left: 360, hanging: 240 };
+  if (/^\(?\d{1,2}[.)]\s/.test(line) || /^\(?[a-z][.)]\s/.test(line)) {
+    return { left: 360, hanging: 300 };
+  }
+  return null;
+}
+
+/**
+ * One question -> the paragraphs inside its cell:
+ * statement lines, then (optionally) Sample Input / Expected Output blocks
+ * with bold labels and monospaced values.
+ */
+function createQuestionParagraphs(question, options) {
+  const { statement, sections } = parseQuestionBlock(question);
+  const paragraphs = [];
+
+  statement.forEach((line, index) => {
+    const indent = getListIndent(line);
+
+    paragraphs.push(
+      new Paragraph({
+        spacing: { before: index === 0 ? 80 : 40, after: 40 },
+        indent: indent
+          ? { left: indent.left, hanging: indent.hanging }
+          : undefined,
+        children: splitBold(line).map(
+          (run) =>
+            new TextRun({
+              text: run.text,
+              bold: run.bold,
+              size: 24,
+              font: BODY_FONT,
+            }),
+        ),
+      }),
+    );
+  });
+
+  if (options.includeSamples !== false) {
+    sections.forEach((section) => {
+      paragraphs.push(
+        new Paragraph({
+          spacing: { before: 120, after: 30 },
+          keepNext: true,
+          children: [
+            new TextRun({
+              text: `${section.label}:`,
+              bold: true,
+              size: 22,
+              font: BODY_FONT,
+            }),
+          ],
+        }),
+      );
+
+      section.lines.forEach((line) => {
+        paragraphs.push(
+          new Paragraph({
+            spacing: { before: 0, after: 0 },
+            indent: { left: 240 },
+            children: [new TextRun({ text: line, size: 21, font: CODE_FONT })],
+          }),
+        );
+      });
+    });
+  }
+
+  return paragraphs.length
+    ? paragraphs
+    : [new Paragraph({ children: [new TextRun({ text: "", size: 24 })] })];
+}
+
+function createRichCell({ paragraphs, width = 80 }) {
+  return new TableCell({
+    width: { size: width, type: WidthType.PERCENTAGE },
+    margins: { top: 100, bottom: 100, left: 120, right: 120 },
+    children: paragraphs,
+  });
+}
+
+/** The details table, or nothing when no table row is selected (an empty table is invalid). */
+function createDetailsBlock(details, options) {
+  return getSelectedDetailRows(details, options).length
+    ? [createDetailsTable(details, options)]
+    : [];
+}
+
 function createDetailsTable(details, options) {
   const rows = getSelectedDetailRows(details, options);
 
@@ -97,6 +191,7 @@ function createDetailsTable(details, options) {
       size: 100,
       type: WidthType.PERCENTAGE,
     },
+    columnWidths: [2808, 6552],
     borders: createTableBorders(),
     rows: rows.map(
       ([label, value]) =>
@@ -126,8 +221,8 @@ function createQuestionTable(question, index, options) {
           width: 20,
           bold: true,
         }),
-        createCell({
-          text: question,
+        createRichCell({
+          paragraphs: createQuestionParagraphs(question, options),
           width: 80,
         }),
       ],
@@ -195,6 +290,7 @@ function createQuestionTable(question, index, options) {
       size: 100,
       type: WidthType.PERCENTAGE,
     },
+    columnWidths: [1872, 7488],
     borders: createTableBorders(),
     rows,
   });
@@ -324,7 +420,7 @@ export async function generateWordAssignment({ details, questions, options }) {
       ],
     }),
 
-    createDetailsTable(details, options),
+    ...createDetailsBlock(details, options),
 
     new Paragraph({
       spacing: {

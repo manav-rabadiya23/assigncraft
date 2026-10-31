@@ -1,3 +1,4 @@
+import { parseQuestionBlock, splitBold } from "../utils/questionFormat";
 import {
   getSelectedDetailRows,
   getSelectedFooterParts,
@@ -46,6 +47,42 @@ function PageFooter({ details, options, pageNumber }) {
   );
 }
 
+function QuestionBody({ question, options }) {
+  const { statement, sections } = parseQuestionBlock(question);
+  const showSamples = options.includeSamples !== false;
+
+  return (
+    <>
+      {statement.map((line, lineIndex) => {
+        const isList = /^(?:[•◦]|\(?\d{1,2}[.)]|\(?[a-z][.)])\s/.test(line);
+        return (
+          <p
+            key={lineIndex}
+            className={`${lineIndex ? "mt-1" : ""} ${isList ? (line.startsWith("◦") ? "ml-10" : "ml-5") : ""}`}
+          >
+            {splitBold(line).map((run, runIndex) =>
+              run.bold ? (
+                <strong key={runIndex}>{run.text}</strong>
+              ) : (
+                <span key={runIndex}>{run.text}</span>
+              ),
+            )}
+          </p>
+        );
+      })}
+      {showSamples &&
+        sections.map((section, sectionIndex) => (
+          <div key={sectionIndex} className="mt-3">
+            <p className="text-[14px] font-bold">{section.label}:</p>
+            <pre className="ml-3 whitespace-pre-wrap font-mono text-[13px] leading-5">
+              {section.lines.join("\n")}
+            </pre>
+          </div>
+        ))}
+    </>
+  );
+}
+
 function QuestionBlock({ question, index, options }) {
   const custom = (options.customAnswerSections || []).filter(
     (section) => section.enabled,
@@ -61,7 +98,9 @@ function QuestionBlock({ question, index, options }) {
           <div className="border-r border-slate-600 p-3 font-bold">
             Q-{index + 1}
           </div>
-          <div className="p-3 leading-6">{question}</div>
+          <div className="p-3 leading-6">
+            <QuestionBody question={question} options={options} />
+          </div>
         </div>
         {options.includeCode && (
           <div

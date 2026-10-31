@@ -12,13 +12,17 @@ import QuestionsSection from "../components/QuestionsSection";
 import SiteFooter from "../components/SiteFooter";
 import UploadSection from "../components/UploadSection";
 import { DEFAULT_DOCUMENT_OPTIONS } from "../constants/defaults";
-import { extractTextFromDocx } from "../utils/docxExtractor";
 import {
   downloadAssignmentPdf,
   printAssignmentPdf,
 } from "../utils/pdfGenerator";
-import { extractTextFromPdf } from "../utils/pdfExtractor";
 import { getSavedProfile, saveProfile } from "../utils/profileStorage";
+import {
+  QUESTION_FILE_LABEL,
+  isSupportedQuestionFile,
+  readQuestionFile,
+} from "../utils/questionFileReader";
+import { focusAndHighlight } from "../utils/focusTarget";
 import { detectQuestions } from "../utils/questionParser";
 import { parsePastedQuestions } from "../utils/pastedQuestions";
 import { generateWordAssignment } from "../utils/wordGenerator";
@@ -192,14 +196,10 @@ function HomePage() {
 
     if (!files.length) return;
 
-    const supportedFiles = files.filter((file) => {
-      const extension = file.name.split(".").pop()?.toLowerCase();
-
-      return ["pdf", "docx"].includes(extension);
-    });
+    const supportedFiles = files.filter(isSupportedQuestionFile);
 
     if (!supportedFiles.length) {
-      showMessage("error", "Please upload valid PDF or DOCX files.");
+      showMessage("error", `Please upload valid ${QUESTION_FILE_LABEL} files.`);
       event.target.value = "";
       return;
     }
@@ -207,7 +207,7 @@ function HomePage() {
     if (supportedFiles.length !== files.length) {
       showMessage(
         "warning",
-        "Some unsupported files were skipped. Only PDF and DOCX files are supported.",
+        `Some unsupported files were skipped. Only ${QUESTION_FILE_LABEL} files are supported.`,
       );
     }
 
@@ -217,6 +217,7 @@ function HomePage() {
       const detectedFromAllFiles = [];
       const newFileRecords = [];
 
+      const detectionWarnings = [];
       let lowConfidenceCount = 0;
       let totalOcrFiles = 0;
 
@@ -237,25 +238,15 @@ function HomePage() {
         let usedOcr = false;
 
         try {
-          if (extension === "pdf") {
-            const result = await extractTextFromPdf(file, {
-              onProgress: ({ message: progress }) =>
-                setProgressMessage(
-                  `${fileIndex + 1}/${supportedFiles.length} · ${file.name} · ${progress}`,
-                ),
-            });
+          const result = await readQuestionFile(file, {
+            onProgress: ({ message: progress }) =>
+              setProgressMessage(
+                `${fileIndex + 1}/${supportedFiles.length} · ${file.name} · ${progress}`,
+              ),
+          });
 
-            extractedText = result.text;
-            usedOcr = result.usedOcr;
-          } else {
-            extractedText = await extractTextFromDocx(file);
-          }
-
-          console.log("========== ASSIGNCRAFT DEBUG ==========");
-          console.log("File:", file.name);
-          console.log("EXTRACTED TEXT:");
-          console.log(extractedText);
-          console.log("========================================");
+          extractedText = result.text;
+          usedOcr = result.usedOcr;
 
           const detected = extractedText.trim()
             ? detectQuestions(extractedText)
@@ -265,14 +256,9 @@ function HomePage() {
                 usedFallback: false,
               };
 
-          console.log("DETECTED RESULT:", detected);
-          console.log("DETECTED QUESTIONS COUNT:", detected.questions.length);
-          console.log(
-            "DETECTED QUESTIONS JSON:",
-            JSON.stringify(detected.questions, null, 2),
+          (detected.warnings || []).forEach((warning) =>
+            detectionWarnings.push(`${file.name}: ${warning}`),
           );
-
-          console.log("========================================");
 
           if (usedOcr) {
             totalOcrFiles += 1;
@@ -318,12 +304,16 @@ function HomePage() {
           "warning",
           "The files were read, but no questions were detected. You can paste or add questions manually.",
         );
-      } else if (lowConfidenceCount > 0) {
+      } else if (lowConfidenceCount > 0 || detectionWarnings.length > 0) {
         showMessage(
           "warning",
           `${detectedFromAllFiles.length} question(s) added from ${supportedFiles.length} file(s)${
             totalOcrFiles ? `; OCR used for ${totalOcrFiles} file(s)` : ""
-          }. Please verify the detected questions.`,
+          }. Please verify the detected questions.${
+            detectionWarnings.length
+              ? ` Note: ${detectionWarnings.slice(0, 2).join(" ")}`
+              : ""
+          }`,
         );
       } else {
         showMessage(
@@ -492,6 +482,30 @@ function HomePage() {
     showMessage("info", "All questions have been cleared.");
   };
 
+  const toggleDetailsTable = () => {
+    setDocumentOptions((current) => ({
+      ...current,
+      showDetailsTable: current.showDetailsTable === false,
+    }));
+  };
+
+  const toggleTableField = (field) => {
+    setDocumentOptions((current) => ({
+      ...current,
+      tableFields: {
+        ...current.tableFields,
+        [field]: !current.tableFields?.[field],
+      },
+    }));
+  };
+
+  const reorderTableField = (order) => {
+    setDocumentOptions((current) => ({
+      ...current,
+      tableFieldOrder: order,
+    }));
+  };
+
   const setHeaderMode = (mode) => {
     setDocumentOptions((current) => ({
       ...current,
@@ -592,6 +606,13 @@ function HomePage() {
     setDocumentOptions((current) => ({
       ...current,
       includeOutput: !current.includeOutput,
+    }));
+  };
+
+  const toggleSamples = () => {
+    setDocumentOptions((current) => ({
+      ...current,
+      includeSamples: current.includeSamples === false,
     }));
   };
 
@@ -738,36 +759,38 @@ function HomePage() {
     }
   };
 
+  // Shows the error AND takes the user to the place that needs fixing.
+  const fail = (text, target) => {
+    showMessage("error", text);
+    focusAndHighlight(target);
+    return false;
+  };
+
   const validateForm = () => {
     const required = [
-      ["Course Name", details.courseName],
-      ["Full Name", details.fullName],
-      ["Student ID", details.studentId],
-      ["Division", details.division],
-      ["Subject", details.subject],
-      ["Subject Code", details.subjectCode],
-      ["Assignment Number", details.assignmentNumber],
+      ["Course Name", details.courseName, "courseName"],
+      ["Full Name", details.fullName, "fullName"],
+      ["Student ID", details.studentId, "studentId"],
+      ["Division", details.division, "division"],
+      ["Subject", details.subject, "subject"],
+      ["Subject Code", details.subjectCode, "subjectCode"],
+      ["Assignment Number", details.assignmentNumber, "assignmentNumber"],
     ];
 
     const missing = required.find(([, value]) => !value.trim());
 
     if (missing) {
-      showMessage("error", `Please enter ${missing[0]}.`);
-
-      return false;
+      return fail(`Please enter ${missing[0]}.`, missing[2]);
     }
 
     if (!questions.some((question) => question.trim())) {
-      showMessage(
-        "error",
+      return fail(
         "Please upload files, paste questions or add at least one question.",
+        "upload-section",
       );
-
-      return false;
     }
 
     const headerMode = documentOptions.headerMode || "none";
-
     const footerMode = documentOptions.footerMode || "none";
 
     const hasHeaderFields = Object.values(
@@ -779,12 +802,10 @@ function HomePage() {
     ).some(Boolean);
 
     if (headerMode !== "none" && !hasHeaderFields) {
-      showMessage(
-        "error",
+      return fail(
         "Select at least one detail for the header or set Header to Don't show.",
+        "header-options",
       );
-
-      return false;
     }
 
     if (
@@ -792,12 +813,10 @@ function HomePage() {
       !hasFooterFields &&
       !documentOptions.showPageNumbers
     ) {
-      showMessage(
-        "error",
+      return fail(
         "Select at least one detail for the footer, enable Page Number, or set Footer to Don't show.",
+        "footer-options",
       );
-
-      return false;
     }
 
     return true;
@@ -935,6 +954,9 @@ function HomePage() {
           <DocumentOptions
             options={documentOptions}
             customDetails={customDetails}
+            onToggleDetailsTable={toggleDetailsTable}
+            onToggleTableField={toggleTableField}
+            onReorderTableField={reorderTableField}
             onSetHeaderMode={setHeaderMode}
             onToggleHeaderField={toggleHeaderField}
             onReorderHeaderField={reorderHeaderField}
@@ -944,6 +966,7 @@ function HomePage() {
             onTogglePageNumbers={togglePageNumbers}
             onToggleCode={toggleCode}
             onToggleOutput={toggleOutput}
+            onToggleSamples={toggleSamples}
             onAddCustomAnswerSection={addCustomAnswerSection}
             onToggleCustomAnswerSection={toggleCustomAnswerSection}
             onRenameCustomAnswerSection={renameCustomAnswerSection}

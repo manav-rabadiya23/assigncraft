@@ -1,26 +1,38 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, X } from "lucide-react";
 
-const STORAGE_KEY = "assigncraft-verification-popup-seen";
+// The reminder is shown every time the site is opened (page load / refresh),
+// not only on the first visit. It is not shown again when moving between pages.
+const OLD_STORAGE_KEY = "assigncraft-verification-popup-seen";
 
 export default function VerificationPopup() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
-    const hasSeenPopup = localStorage.getItem(STORAGE_KEY);
-
-    if (!hasSeenPopup) {
-      setIsOpen(true);
-      document.body.style.overflow = "hidden";
+    try {
+      localStorage.removeItem(OLD_STORAGE_KEY); // from the previous "show once" version
+    } catch {
+      // storage can be blocked; nothing to clean up then
     }
 
+    document.body.style.overflow = "hidden";
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+        document.body.style.overflow = "";
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+
     return () => {
+      window.removeEventListener("keydown", closeOnEscape);
       document.body.style.overflow = "";
     };
   }, []);
 
   const closePopup = () => {
-    localStorage.setItem(STORAGE_KEY, "true");
     setIsOpen(false);
     document.body.style.overflow = "";
   };

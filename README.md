@@ -1,16 +1,75 @@
-# React + Vite
+# AssignCraft
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Turn a teacher's question file (PDF / DOCX / pasted text) into a formatted
+assignment (Word or PDF), a Jupyter notebook, or a continuation of an
+assignment you already completed. Everything runs in the browser.
 
-Currently, two official plugins are available:
+## Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```
+src/
+  pages/            generic pages (Home, About, Features, ...)
+  components/       shared UI
+  utils/            generic logic
+    pdfLayout.js      PDF text layout: splits Sample Input | Expected Output
+                      tables by column, removes repeated page headers
+    pdfExtractor.js   pdf.js + OCR fallback (uses pdfLayout)
+    docxExtractor.js  DOCX -> text, keeps list numbers and sample tables
+    questionParser.js finds the questions (validates the 1,2,3... sequence)
+    questionFormat.js one place that defines how a question is written
+                      (statement + "Sample Input:" / "Expected Output:")
+    wordGenerator.js / pdfGenerator.js
+  python/           everything specific to the Python course
+    parserConfig.js   course headings / page-header noise for the parser
+    constants.js      defaults (subject = PYTHON)
+    pages/            Continue Assignment, Jupyter Tools
+    utils/            continueAssignmentGenerator, jupyterNotebook, notebookPdf
+scripts/            dev helpers (see below)
+```
 
-## React Compiler
+## Supported formats
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [Normal side (assignment generator)](docs/SUPPORTED_FORMATS_NORMAL.md)
+- [Python side (Jupyter tools, Continue Assignment)](docs/SUPPORTED_FORMATS_PYTHON.md)
 
-## Expanding the Oxlint configuration
+## Saved details (autofill)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Name, student ID, division and course are saved in this browser only
+(`localStorage`, see `utils/profileStorage.js`) and shared by the assignment
+generator and the Jupyter tools, so they are typed once. "Clear saved details"
+on the Jupyter page removes them.
+
+## Details table, header and footer
+
+These are three independent places in the Word / PDF output. Each has its own
+field list (`tableFields`, `headerFields`, `footerFields`), so choosing a detail
+for one never changes the others. The options panel warns when the same detail
+is selected in the table and in the header or footer.
+
+## Question format
+
+Each question is stored as editable text:
+
+```
+<statement lines, bullets, numbered steps>
+
+Sample Input:
+...
+
+Expected Output:
+...
+```
+
+"Show Sample Input & Expected Output" in Document Options controls whether the
+samples are printed (Word, PDF, preview). Jupyter and Continue tools include them
+as code blocks / monospaced blocks.
+
+## Development
+
+```
+npm install
+npm run dev
+npm run build
+npm run test:parser -- path/to/Assignment.pdf   # prints question count + warnings
+SHOW=1 npm run test:parser -- file.pdf          # prints every parsed question
+```

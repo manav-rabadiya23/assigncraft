@@ -15,3 +15,16 @@ input,
 textarea {
   font: inherit;
 }
+
+/* Flash used by focusAndHighlight() to show where a form error is. */
+[data-attention="true"] {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 4px rgb(244 63 94 / 0.25) !important;
+  animation: attention-pulse 0.7s ease-in-out 3;
+}
+
+@keyframes attention-pulse {
+  50% {
+    box-shadow: 0 0 0 8px rgb(244 63 94 / 0.12);
+  }
+}

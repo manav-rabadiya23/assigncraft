@@ -9,7 +9,9 @@ export default function MessageBanner({ message }) {
   if (!message?.text) return null;
 
   return (
-    <div className={`rounded-2xl border px-5 py-4 text-sm font-semibold ${styles[message.type] || styles.info}`}>
+    <div
+      className={`rounded-2xl border px-5 py-4 text-sm font-semibold ${styles[message.type] || styles.info}`}
+    >
       {message.text}
     </div>
   );

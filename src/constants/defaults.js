@@ -24,12 +24,34 @@ export const HEADER_FIELD_OPTIONS = [
 ];
 
 export const DEFAULT_DOCUMENT_OPTIONS = {
+  // The details table (top of the document), the page header and the page
+  // footer are three independent places, each with its own field list.
+  showDetailsTable: true,
   headerMode: "none",
   footerMode: "none",
   showPageNumbers: false,
   includeCode: true,
   includeOutput: true,
+  includeSamples: true,
   customAnswerSections: [],
+  tableFieldOrder: [
+    "fullName",
+    "studentId",
+    "division",
+    "courseName",
+    "subject",
+    "subjectCode",
+    "assignmentNumber",
+  ],
+  tableFields: {
+    fullName: true,
+    studentId: true,
+    division: true,
+    subject: true,
+    subjectCode: true,
+    courseName: false,
+    assignmentNumber: false,
+  },
   headerFieldOrder: [
     "fullName",
     "studentId",
@@ -52,8 +74,8 @@ export const DEFAULT_DOCUMENT_OPTIONS = {
     fullName: true,
     studentId: true,
     division: true,
-    subject: true,
-    subjectCode: true,
+    subject: false,
+    subjectCode: false,
     courseName: false,
     assignmentNumber: false,
   },

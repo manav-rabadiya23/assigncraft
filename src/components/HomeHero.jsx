@@ -22,11 +22,14 @@ export default function HomeHero() {
 
           <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.04] tracking-[-0.04em] sm:text-5xl lg:text-[58px]">
             Turn question files into a
-            <span className="block text-violet-100">ready assignment faster.</span>
+            <span className="block text-violet-100">
+              ready assignment faster.
+            </span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-7 text-violet-100 sm:text-lg">
-            Upload PDF or Word files, review detected questions, customize the document, and export the final assignment to Word or PDF.
+            Upload PDF or Word files, review detected questions, customize the
+            document, and export the final assignment to Word or PDF.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -70,19 +73,26 @@ export default function HomeHero() {
 
               <div className="mt-4 space-y-3">
                 <div className="grid grid-cols-[105px_1fr] overflow-hidden rounded-xl border border-slate-200 text-xs">
-                  <div className="bg-slate-50 px-3 py-2.5 font-bold">Student ID</div>
+                  <div className="bg-slate-50 px-3 py-2.5 font-bold">
+                    Student ID
+                  </div>
                   <div className="px-3 py-2.5 text-slate-600">24BCA196</div>
                 </div>
 
                 <div className="grid grid-cols-[105px_1fr] overflow-hidden rounded-xl border border-slate-200 text-xs">
-                  <div className="bg-slate-50 px-3 py-2.5 font-bold">Subject</div>
-                  <div className="px-3 py-2.5 text-slate-600">Python Programming</div>
+                  <div className="bg-slate-50 px-3 py-2.5 font-bold">
+                    Subject
+                  </div>
+                  <div className="px-3 py-2.5 text-slate-600">
+                    Python Programming
+                  </div>
                 </div>
 
                 <div className="rounded-xl border border-slate-200 p-3">
                   <p className="text-xs font-black">Question 1</p>
                   <p className="mt-2 text-xs leading-5 text-slate-500">
-                    Write a Python program to find the largest number from a list.
+                    Write a Python program to find the largest number from a
+                    list.
                   </p>
                 </div>
               </div>

@@ -1,5 +1,7 @@
 import { jsPDF } from "jspdf";
 import { createAssignmentBaseName } from "./fileName";
+import { parseQuestionBlock, splitBold } from "./questionFormat";
+import { toPdfSafeText } from "./pdfText";
 import {
   getSelectedDetailRows,
   getSelectedFooterParts,
@@ -157,104 +159,221 @@ function drawDetailsTable(doc, details, options, y) {
   return y;
 }
 
+const LINE_HEIGHT = { times: 4.8, courier: 4.2 };
+
+/**
+ * Word-wraps text that mixes regular and **bold** pieces.
+ * Returns lines; each line is a list of { text, bold } segments.
+ */
+function wrapRich(doc, text, maxWidth, size) {
+  const words = [];
+
+  splitBold(toPdfSafeText(text)).forEach((run) => {
+    run.text
+      .split(/(\s+)/)
+      .filter(Boolean)
+      .forEach((token) => words.push({ text: token, bold: run.bold }));
+  });
+
+  const measure = (token) => {
+    doc.setFont("times", token.bold ? "bold" : "normal");
+    doc.setFontSize(size);
+    return doc.getTextWidth(token.text);
+  };
+
+  const lines = [];
+  let line = [];
+  let width = 0;
+
+  const pushLine = () => {
+    while (line.length && !line[line.length - 1].text.trim()) line.pop(); // trailing spaces
+    if (line.length) lines.push(line);
+    line = [];
+    width = 0;
+  };
+
+  words.forEach((token) => {
+    const isSpace = !token.text.trim();
+    const tokenWidth = measure(token);
+
+    if (!isSpace && width + tokenWidth > maxWidth && line.length) pushLine();
+    if (isSpace && !line.length) return; // no leading spaces on a wrapped line
+
+    const last = line[line.length - 1];
+    if (last && last.bold === token.bold) last.text += token.text;
+    else line.push({ text: token.text, bold: token.bold });
+
+    width += tokenWidth;
+  });
+
+  pushLine();
+  return lines.length ? lines : [[{ text: "", bold: false }]];
+}
+
+/** Wrapped, styled lines for one question cell (statement + optional samples). */
+function buildQuestionLines(doc, question, options, maxWidth) {
+  const { statement, sections } = parseQuestionBlock(question);
+  const lines = [];
+
+  const push = (
+    text,
+    { font = "times", style = "normal", size = 10, indent = 0, gap = 0 },
+  ) => {
+    doc.setFont(font, style);
+    doc.setFontSize(size);
+
+    const wrapped = doc.splitTextToSize(toPdfSafeText(text), maxWidth - indent);
+    wrapped.forEach((piece, index) =>
+      lines.push({
+        text: piece,
+        font,
+        style,
+        size,
+        indent: index === 0 ? indent : indent + (/^[•-]\s/.test(text) ? 3 : 0),
+        gap: index === 0 ? gap : 0,
+      }),
+    );
+  };
+
+  statement.forEach((line, index) => {
+    const isSubBullet = /^◦\s/.test(line);
+    const isListLine = /^(?:[•◦]|\(?\d{1,2}[.)]|\(?[a-z][.)])\s/.test(line);
+    const indent = isSubBullet ? 8 : isListLine ? 4 : 0;
+
+    wrapRich(doc, line, maxWidth - indent, 10).forEach((segments, pieceIndex) =>
+      lines.push({
+        segments,
+        text: segments.map((segment) => segment.text).join(""),
+        font: "times",
+        style: "normal",
+        size: 10,
+        indent:
+          pieceIndex === 0 ? indent : indent + (/^[•-]\s/.test(line) ? 3 : 0),
+        gap: pieceIndex === 0 ? (index === 0 ? 0 : 0.8) : 0,
+      }),
+    );
+  });
+
+  if (options.includeSamples !== false) {
+    sections.forEach((section) => {
+      push(`${section.label}:`, { style: "bold", size: 9.5, gap: 2.5 });
+      section.lines.forEach((line) =>
+        push(line, { font: "courier", size: 8.8, indent: 3 }),
+      );
+    });
+  }
+
+  return lines.length
+    ? lines
+    : [
+        {
+          text: "",
+          font: "times",
+          style: "normal",
+          size: 10,
+          indent: 0,
+          gap: 0,
+        },
+      ];
+}
+
+function lineHeightOf(line) {
+  return line.gap + (LINE_HEIGHT[line.font] || 4.8);
+}
+
 function drawQuestionTable(doc, question, index, y, details, options, state) {
+  const labelWidth = 25;
+  const textWidth = CONTENT_WIDTH - labelWidth - 6;
+
   doc.setFont("times", "bold");
   doc.setFontSize(11);
-
+  y = ensureSpace(doc, y, 30, details, options, state);
   doc.text(`Question ${index + 1}`, MARGIN, y);
-
   y += 4;
 
-  const labelWidth = 25;
+  const questionLines = buildQuestionLines(doc, question, options, textWidth);
 
-  const questionLines = doc.splitTextToSize(
-    question,
-    CONTENT_WIDTH - labelWidth - 4,
-  );
+  // The question cell may need more than one page: draw it in page-sized slices.
+  let cursor = 0;
+  let firstSlice = true;
 
-  const questionHeight = Math.max(12, questionLines.length * 5 + 5);
+  while (cursor < questionLines.length) {
+    y = ensureSpace(doc, y, 26, details, options, state);
+    const available = getBottomLimit(options) - y - 4;
 
-  const codeHeight = options.includeCode ? 34 : 0;
+    let used = 5;
+    let end = cursor;
+    while (
+      end < questionLines.length &&
+      used + lineHeightOf(questionLines[end]) <= available
+    ) {
+      used += lineHeightOf(questionLines[end]);
+      end += 1;
+    }
+    if (end === cursor) end = cursor + 1; // always make progress
 
-  const outputHeight = options.includeOutput ? 26 : 0;
+    const sliceHeight = Math.max(12, used + 2);
 
-  const customSections = (options.customAnswerSections || []).filter(
-    (section) => section.enabled,
-  );
+    doc.rect(MARGIN, y, labelWidth, sliceHeight);
+    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, sliceHeight);
 
-  const customSectionHeight = 26;
+    if (firstSlice) {
+      doc.setFont("times", "bold");
+      doc.setFontSize(10);
+      doc.text(`Q-${index + 1}`, MARGIN + 2, y + 6);
+    }
 
-  const totalHeight =
-    questionHeight +
-    codeHeight +
-    outputHeight +
-    customSections.length * customSectionHeight;
+    let textY = y + 5.6;
+    for (let i = cursor; i < end; i += 1) {
+      const line = questionLines[i];
+      textY += line.gap;
+      doc.setFontSize(line.size);
 
-  y = ensureSpace(doc, y, totalHeight + 10, details, options, state);
+      if (line.segments) {
+        let x = MARGIN + labelWidth + 3 + line.indent;
+        line.segments.forEach((segment) => {
+          doc.setFont(line.font, segment.bold ? "bold" : "normal");
+          doc.text(segment.text, x, textY);
+          x += doc.getTextWidth(segment.text);
+        });
+      } else {
+        doc.setFont(line.font, line.style);
+        doc.text(line.text, MARGIN + labelWidth + 3 + line.indent, textY);
+      }
 
-  doc.setFont("times", "normal");
-  doc.setFontSize(10);
+      textY += LINE_HEIGHT[line.font] || 4.8;
+    }
 
-  // Question
-  doc.rect(MARGIN, y, labelWidth, questionHeight);
+    y += sliceHeight;
+    cursor = end;
+    firstSlice = false;
 
-  doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, questionHeight);
-
-  doc.setFont("times", "bold");
-
-  doc.text(`Q-${index + 1}`, MARGIN + 2, y + 6);
-
-  doc.setFont("times", "normal");
-
-  doc.text(questionLines, MARGIN + labelWidth + 2, y + 6);
-
-  y += questionHeight;
-
-  // Code
-  if (options.includeCode) {
-    doc.rect(MARGIN, y, labelWidth, codeHeight);
-
-    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, codeHeight);
-
-    doc.setFont("times", "bold");
-
-    doc.text("Code", MARGIN + 2, y + 6);
-
-    y += codeHeight;
+    if (cursor < questionLines.length) {
+      doc.addPage();
+      state.pageNumber += 1;
+      y = getTopStart(doc, details, options, state.pageNumber);
+    }
   }
 
-  // Output
-  if (options.includeOutput) {
-    doc.rect(MARGIN, y, labelWidth, outputHeight);
+  const answerRow = (label, height) => {
+    y = ensureSpace(doc, y, height, details, options, state);
 
-    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, outputHeight);
-
-    doc.setFont("times", "bold");
-
-    doc.text("Output", MARGIN + 2, y + 6);
-
-    y += outputHeight;
-  }
-
-  // Custom answer sections
-  customSections.forEach((section) => {
-    doc.rect(MARGIN, y, labelWidth, customSectionHeight);
-
-    doc.rect(
-      MARGIN + labelWidth,
-      y,
-      CONTENT_WIDTH - labelWidth,
-      customSectionHeight,
-    );
+    doc.rect(MARGIN, y, labelWidth, height);
+    doc.rect(MARGIN + labelWidth, y, CONTENT_WIDTH - labelWidth, height);
 
     doc.setFont("times", "bold");
+    doc.setFontSize(10);
+    doc.text(doc.splitTextToSize(label, labelWidth - 4), MARGIN + 2, y + 6);
 
-    const labelLines = doc.splitTextToSize(section.label, labelWidth - 4);
+    y += height;
+  };
 
-    doc.text(labelLines, MARGIN + 2, y + 6);
+  if (options.includeCode) answerRow("Code", 34);
+  if (options.includeOutput) answerRow("Output", 26);
 
-    y += customSectionHeight;
-  });
+  (options.customAnswerSections || [])
+    .filter((section) => section.enabled)
+    .forEach((section) => answerRow(section.label, 26));
 
   return y + 8;
 }

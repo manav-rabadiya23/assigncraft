@@ -30,7 +30,9 @@ export function getOrderedFields(details, options, area = "header") {
     ...DETAIL_FIELD_DEFINITIONS.map(({ key }) => key),
     ...customDetails.map((item) => `custom:${item.id}`),
   ];
-  const orderKey = area === "footer" ? "footerFieldOrder" : "headerFieldOrder";
+  const orderKey =
+    { footer: "footerFieldOrder", table: "tableFieldOrder" }[area] ||
+    "headerFieldOrder";
   return [...(options?.[orderKey] || []), ...defaultOrder]
     .filter(
       (key, index, list) => fieldMap.has(key) && list.indexOf(key) === index,
@@ -38,9 +40,12 @@ export function getOrderedFields(details, options, area = "header") {
     .map((key) => fieldMap.get(key));
 }
 
+/** Rows of the details table at the top of the document (independent of header/footer). */
 export function getSelectedDetailRows(details, options) {
-  const fields = options?.headerFields || {};
-  return getOrderedFields(details, options, "header")
+  if (options?.showDetailsTable === false) return [];
+
+  const fields = options?.tableFields || {};
+  return getOrderedFields(details, options, "table")
     .filter((field) => Boolean(fields[field.key]))
     .map((field) => [
       field.label,
@@ -57,7 +62,10 @@ export function getSelectedFooterParts(details, options) {
 }
 
 function getSelectedParts(details, options, area) {
-  const fields = area === "footer" ? options?.footerFields || {} : options?.headerFields || {};
+  const fields =
+    area === "footer"
+      ? options?.footerFields || {}
+      : options?.headerFields || {};
   return getOrderedFields(details, options, area)
     .filter((field) => Boolean(fields[field.key]))
     .reduce((parts, field) => {
@@ -66,7 +74,8 @@ function getSelectedParts(details, options, area) {
         : details?.[field.key] || "";
       if (!String(value).trim()) return parts;
       if (field.key === "division") parts.push(`Division ${value}`);
-      else if (field.key === "assignmentNumber") parts.push(`Assignment ${value}`);
+      else if (field.key === "assignmentNumber")
+        parts.push(`Assignment ${value}`);
       else if (field.custom) parts.push(`${field.label}: ${value}`);
       else parts.push(value);
       return parts;

@@ -1,7 +1,16 @@
-export default function FormInput({ label, name, value, placeholder, onChange }) {
+export default function FormInput({
+  label,
+  name,
+  value,
+  placeholder,
+  onChange,
+}) {
   return (
     <div>
-      <label htmlFor={name} className="mb-2 block text-sm font-semibold text-slate-700">
+      <label
+        htmlFor={name}
+        className="mb-2 block text-sm font-semibold text-slate-700"
+      >
         {label}
       </label>
       <input

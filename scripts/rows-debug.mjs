@@ -1,0 +1,10 @@
+import fs from "node:fs";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
+import { extractRows, removeRepeatedNoiseRows, rowText } from "../src/utils/pdfLayout.js";
+const [file, pageArg] = process.argv.slice(2);
+const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(fs.readFileSync(file)), verbosity: 0 }).promise;
+const pages = [];
+for (let p = 1; p <= pdf.numPages; p++) pages.push(extractRows((await (await pdf.getPage(p)).getTextContent()).items));
+const cleaned = removeRepeatedNoiseRows(pages);
+const rows = cleaned[Number(pageArg) - 1];
+rows.forEach((r, i) => console.log(i, r.y.toFixed(0), r.runs.map((x) => `[${x.x.toFixed(0)}|${x.text}]`).join(" ")));

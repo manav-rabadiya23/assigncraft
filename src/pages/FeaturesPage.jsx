@@ -199,7 +199,7 @@ const featureSections = [
       {
         icon: FaPython,
         title: "Create Jupyter Notebook",
-        text: "Use PDF or DOCX questions to create a .ipynb notebook.",
+        text: "Use PDF, DOCX or TXT questions to create a .ipynb notebook.",
       },
       {
         icon: FaPython,

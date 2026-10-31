@@ -1,7 +1,4 @@
-import {
-  DEVLOKS_URL,
-  PORTFOLIO_URL,
-} from "../constants/defaults";
+import { DEVLOKS_URL, PORTFOLIO_URL } from "../constants/defaults";
 
 const features = [
   {
@@ -39,7 +36,7 @@ const howItWorksItems = [
     id: "how-multi-file",
     number: "01",
     title: "Upload One or Multiple Files",
-    text: "Upload PDF or DOCX files provided by your teacher. If you upload multiple files, AssignCraft reads questions from all of them and adds the detected questions to the same assignment.",
+    text: "Upload PDF, DOCX or TXT files provided by your teacher. If you upload multiple files, AssignCraft reads questions from all of them and adds the detected questions to the same assignment.",
   },
   {
     id: "how-copy-paste",
@@ -91,10 +88,7 @@ export function SiteNavbar() {
         </a>
 
         <div className="hidden items-center gap-6 text-sm font-semibold text-slate-700 md:flex">
-          <a
-            href="#how-it-works"
-            className="transition hover:text-indigo-600"
-          >
+          <a href="#how-it-works" className="transition hover:text-indigo-600">
             How It Works
           </a>
 
@@ -133,10 +127,7 @@ export function SiteNavbar() {
             </div>
           </div>
 
-          <a
-            href="#about-us"
-            className="transition hover:text-indigo-600"
-          >
+          <a href="#about-us" className="transition hover:text-indigo-600">
             About Us
           </a>
         </div>
@@ -188,9 +179,7 @@ export function SiteInformationSections() {
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-slate-900">
-                    {item.title}
-                  </h3>
+                  <h3 className="font-bold text-slate-900">{item.title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     {item.text}
                   </p>
@@ -243,8 +232,8 @@ export function SiteInformationSections() {
           <div className="rounded-2xl border border-white bg-white/80 p-5 shadow-sm">
             <h3 className="font-bold text-slate-900">Customize Easily</h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Choose the details and document options that match your
-              assignment requirements.
+              Choose the details and document options that match your assignment
+              requirements.
             </p>
           </div>
         </div>

@@ -15,7 +15,9 @@ export function focusAndHighlight(target) {
 
   const focusable = element.matches?.("input, textarea, select, button")
     ? element
-    : element.querySelector?.("input:not([type=hidden]), textarea, select, button");
+    : element.querySelector?.(
+        "input:not([type=hidden]), textarea, select, button",
+      );
 
   window.setTimeout(() => {
     focusable?.focus({ preventScroll: true });

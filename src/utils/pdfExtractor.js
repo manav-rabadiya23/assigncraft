@@ -59,7 +59,9 @@ async function runOcr(pdf, onProgress) {
 
 export async function extractTextFromPdf(file, { onProgress } = {}) {
   const arrayBuffer = await file.arrayBuffer();
-  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) });
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(arrayBuffer),
+  });
   const pdf = await loadingTask.promise;
   const pagesOfItems = [];
 

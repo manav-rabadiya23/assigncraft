@@ -5,13 +5,16 @@ import {
   FaExternalLinkAlt,
   FaGlobe,
   FaGraduationCap,
+  FaPhoneAlt,
   FaInstagram,
   FaLightbulb,
   FaUser,
 } from "react-icons/fa";
 
+import ContactSection from "../components/ContactSection";
 import Header from "../components/Header";
 import SiteFooter from "../components/SiteFooter";
+import { OWNER_PHONE_DISPLAY, OWNER_PHONE_LINK } from "../constants/contact";
 import { DEVLOKS_URL, PORTFOLIO_URL } from "../constants/defaults";
 
 export default function AboutPage() {
@@ -124,10 +127,27 @@ export default function AboutPage() {
                   </div>
 
                   <a
+                    href={OWNER_PHONE_LINK}
+                    className="mt-6 flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-indigo-300 hover:bg-indigo-50"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white">
+                      <FaPhoneAlt aria-hidden="true" />
+                    </span>
+                    <span>
+                      <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                        Contact number
+                      </span>
+                      <span className="block text-base font-black text-slate-900">
+                        {OWNER_PHONE_DISPLAY}
+                      </span>
+                    </span>
+                  </a>
+
+                  <a
                     href={PORTFOLIO_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-indigo-700"
                   >
                     View Portfolio
                     <FaExternalLinkAlt className="text-xs" />
@@ -192,37 +212,8 @@ export default function AboutPage() {
                 </div>
               </article>
             </div>
-
-            {/* Purpose */}
-            <div className="mt-8 rounded-[2rem] border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
-              <div className="grid gap-8 lg:grid-cols-[0.4fr_0.6fr]">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-600">
-                    The Purpose
-                  </p>
-
-                  <h2 className="mt-3 text-2xl font-black">
-                    Why AssignCraft was created
-                  </h2>
-                </div>
-
-                <div className="space-y-4 text-sm leading-7 text-slate-600">
-                  <p>
-                    Students often receive assignment questions in PDFs or Word
-                    files and then spend additional time copying those questions
-                    into a properly formatted document.
-                  </p>
-
-                  <p>
-                    AssignCraft reduces that repeated work by helping users
-                    import questions, organize them, add assignment details,
-                    choose document settings and generate a ready Word or PDF
-                    file.
-                  </p>
-                </div>
-              </div>
-            </div>
           </section>
+          <ContactSection />
         </main>
 
         <SiteFooter />

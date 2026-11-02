@@ -12,6 +12,7 @@
  *    can be laid out properly later.
  */
 import { normalizeLine } from "./textUtils.js";
+import { inputHeaderLabel, outputHeaderLabel } from "./sampleHeaders.js";
 
 const plain = (text = "") => String(text).replace(/\*\*/g, "");
 
@@ -19,11 +20,6 @@ const SAME_ROW_TOLERANCE = 3; // pt
 const RUN_GAP = 12; // pt – items closer than this belong to the same text run
 const TIGHT_GAP = 1.2; // pt – items closer than this need no space between them
 const PARAGRAPH_GAP_RATIO = 1.35;
-
-// Compared with all spaces removed, so kerning glitches ("Sampl e Input") still match.
-const squash = (text) => plain(text).replace(/\s+/g, "").toLowerCase();
-const SAMPLE_INPUT_HEADER = /^sampleinput(?:\/(?:call|action))?$/;
-const SAMPLE_OUTPUT_HEADER = /^(?:expected|sample)output$/;
 
 /* --------------------------------- bold --------------------------------- */
 
@@ -180,24 +176,19 @@ export function removeRepeatedNoiseRows(pages, edge = 4) {
 /* ------------------------------ sample tables ------------------------------ */
 
 function findTableHeader(row) {
-  const input = row.runs.find((run) =>
-    SAMPLE_INPUT_HEADER.test(squash(run.text)),
-  );
+  const input = row.runs.find((run) => inputHeaderLabel(run.text));
   if (!input) return null;
 
   const output = row.runs.find(
-    (run) =>
-      run.x > input.x + 40 && SAMPLE_OUTPUT_HEADER.test(squash(run.text)),
+    (run) => run.x > input.x + 40 && outputHeaderLabel(run.text),
   );
   if (!output) return null;
 
   return {
     leftX: input.x,
     rightX: output.x,
-    inputLabel: canonicalLabel(squash(input.text)),
-    outputLabel: squash(output.text).startsWith("sample")
-      ? "Sample Output"
-      : "Expected Output",
+    inputLabel: inputHeaderLabel(input.text),
+    outputLabel: outputHeaderLabel(output.text),
   };
 }
 
@@ -223,13 +214,6 @@ function joinWrappedCells(lines) {
     }
   }
   return out;
-}
-
-function canonicalLabel(squashed) {
-  const suffix = squashed.match(/\/(call|action)$/);
-  return suffix
-    ? `Sample Input / ${suffix[1].charAt(0).toUpperCase()}${suffix[1].slice(1)}`
-    : "Sample Input";
 }
 
 /* --------------------------- rows -> text lines --------------------------- */

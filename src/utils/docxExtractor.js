@@ -1,4 +1,5 @@
 import mammoth from "mammoth";
+import { inputHeaderLabel, outputHeaderLabel } from "./sampleHeaders.js";
 
 /**
  * Word files lose two things when read as "raw text":
@@ -7,10 +8,6 @@ import mammoth from "mammoth";
  * This reads the document as HTML instead and rebuilds both, so DOCX files
  * go through the same question parser as PDFs.
  */
-
-const squash = (text) => text.replace(/\s+/g, "").toLowerCase();
-const isInputHeader = (text) => /^sampleinput(?:\/(?:call|action))?$/.test(squash(text));
-const isOutputHeader = (text) => /^(?:expected|sample)output$/.test(squash(text));
 
 /** Text of a node with <strong>/<b> runs written as **bold**. */
 function inlineText(node) {
@@ -33,7 +30,11 @@ function inlineText(node) {
 
 const mergeBold = (text) => text.replace(/\*\*(\s*)\*\*/g, "$1");
 
-const clean = (text) => String(text || "").replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").trim();
+const clean = (text) =>
+  String(text || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
 
 function cellLines(cell) {
   const paragraphs = Array.from(cell.querySelectorAll("p"));
@@ -53,18 +54,12 @@ function tableToLines(table) {
   const isSampleTable =
     header &&
     header.length === 2 &&
-    isInputHeader(header[0].textContent) &&
-    isOutputHeader(header[1].textContent);
+    inputHeaderLabel(header[0].textContent) &&
+    outputHeaderLabel(header[1].textContent);
 
   if (isSampleTable) {
-    const inputLabel = /call/i.test(header[0].textContent)
-      ? "Sample Input / Call"
-      : /action/i.test(header[0].textContent)
-        ? "Sample Input / Action"
-        : "Sample Input";
-    const outputLabel = /^sample/i.test(clean(header[1].textContent))
-      ? "Sample Output"
-      : "Expected Output";
+    const inputLabel = inputHeaderLabel(header[0].textContent);
+    const outputLabel = outputHeaderLabel(header[1].textContent);
 
     const left = [];
     const right = [];
@@ -81,7 +76,12 @@ function tableToLines(table) {
 
   // Any other table: one line per row, cells separated by " | ".
   return rows
-    .map((cells) => cells.map((cell) => cellLines(cell).join(" ")).filter(Boolean).join(" | "))
+    .map((cells) =>
+      cells
+        .map((cell) => cellLines(cell).join(" "))
+        .filter(Boolean)
+        .join(" | "),
+    )
     .filter(Boolean);
 }
 
@@ -147,7 +147,10 @@ export async function extractTextFromDocx(file) {
     const text = htmlToStructuredText(html);
     if (text.trim()) return text;
   } catch (error) {
-    console.warn("Structured DOCX reading failed, using plain text instead.", error);
+    console.warn(
+      "Structured DOCX reading failed, using plain text instead.",
+      error,
+    );
   }
 
   const result = await mammoth.extractRawText({ arrayBuffer });

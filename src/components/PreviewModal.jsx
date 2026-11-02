@@ -1,14 +1,20 @@
 import { parseQuestionBlock, splitBold } from "../utils/questionFormat";
 import {
+  cssTextStyle,
+  getLineSpacing,
+  getPartStyle,
+} from "../utils/textStyles";
+import {
   getSelectedDetailRows,
   getSelectedFooterParts,
   getSelectedHeaderParts,
 } from "../utils/documentFields";
 
-function PreviewDetailRow({ label, value, last = false }) {
+function PreviewDetailRow({ label, value, style, last = false }) {
   return (
     <div
       className={`grid grid-cols-[125px_1fr] ${last ? "" : "border-b border-slate-500"}`}
+      style={{ ...cssTextStyle(style), textAlign: "left" }}
     >
       <div className="border-r border-slate-500 px-3 py-2 font-bold">
         {label}
@@ -26,7 +32,13 @@ function PageHeader({ details, options, pageNumber }) {
   const values = getSelectedHeaderParts(details, options);
   if (!values.length) return <div className="h-4" />;
   return (
-    <div className="mb-5 border-b border-slate-500 pb-2 text-center font-serif text-[12px] leading-5 text-black">
+    <div
+      className="mb-5 border-b border-slate-500 pb-2 text-center leading-5"
+      style={{
+        ...cssTextStyle(getPartStyle(options, "headerFooter")),
+        textAlign: "center",
+      }}
+    >
       {values.join(" | ")}
     </div>
   );
@@ -41,7 +53,13 @@ function PageFooter({ details, options, pageNumber }) {
   if (options.showPageNumbers) parts.push(`Page ${pageNumber}`);
   if (!parts.length) return null;
   return (
-    <div className="mt-8 border-t border-slate-300 pt-2 text-center font-serif text-xs text-slate-600">
+    <div
+      className="mt-8 border-t border-slate-300 pt-2 text-center"
+      style={{
+        ...cssTextStyle(getPartStyle(options, "headerFooter")),
+        textAlign: "center",
+      }}
+    >
       {parts.join("  |  ")}
     </div>
   );
@@ -50,6 +68,10 @@ function PageFooter({ details, options, pageNumber }) {
 function QuestionBody({ question, options }) {
   const { statement, sections } = parseQuestionBlock(question);
   const showSamples = options.includeSamples !== false;
+  const questionStyle = getPartStyle(options, "question");
+  const labelStyle = getPartStyle(options, "sampleLabel");
+  const sampleStyle = getPartStyle(options, "sample");
+  const lineHeight = 1.25 * getLineSpacing(options);
 
   return (
     <>
@@ -59,6 +81,7 @@ function QuestionBody({ question, options }) {
           <p
             key={lineIndex}
             className={`${lineIndex ? "mt-1" : ""} ${isList ? (line.startsWith("◦") ? "ml-10" : "ml-5") : ""}`}
+            style={{ ...cssTextStyle(questionStyle), lineHeight }}
           >
             {splitBold(line).map((run, runIndex) =>
               run.bold ? (
@@ -73,8 +96,17 @@ function QuestionBody({ question, options }) {
       {showSamples &&
         sections.map((section, sectionIndex) => (
           <div key={sectionIndex} className="mt-3">
-            <p className="text-[14px] font-bold">{section.label}:</p>
-            <pre className="ml-3 whitespace-pre-wrap font-mono text-[13px] leading-5">
+            <p style={{ ...cssTextStyle(labelStyle), textAlign: "left" }}>
+              {section.label}:
+            </p>
+            <pre
+              className="ml-3 whitespace-pre-wrap"
+              style={{
+                ...cssTextStyle(sampleStyle),
+                textAlign: "left",
+                lineHeight,
+              }}
+            >
               {section.lines.join("\n")}
             </pre>
           </div>
@@ -88,14 +120,21 @@ function QuestionBlock({ question, index, options }) {
     (section) => section.enabled,
   );
   const hasRows = options.includeCode || options.includeOutput || custom.length;
+  const labelStyle = getPartStyle(options, "labels");
+  const labelCss = { ...cssTextStyle(labelStyle), textAlign: "left" };
   return (
     <div className="break-inside-avoid">
-      <h4 className="mb-2 text-[17px] font-bold">Question {index + 1}</h4>
-      <div className="border border-slate-600 text-[16px]">
+      <h4
+        className="mb-2"
+        style={{ ...labelCss, fontSize: `${labelStyle.size + 1}pt` }}
+      >
+        Question {index + 1}
+      </h4>
+      <div className="border border-slate-600">
         <div
           className={`grid grid-cols-[95px_1fr] ${hasRows ? "border-b border-slate-600" : ""}`}
         >
-          <div className="border-r border-slate-600 p-3 font-bold">
+          <div className="border-r border-slate-600 p-3" style={labelCss}>
             Q-{index + 1}
           </div>
           <div className="p-3 leading-6">
@@ -106,7 +145,9 @@ function QuestionBlock({ question, index, options }) {
           <div
             className={`grid grid-cols-[95px_1fr] ${options.includeOutput || custom.length ? "border-b border-slate-600" : ""}`}
           >
-            <div className="border-r border-slate-600 p-3 font-bold">Code</div>
+            <div className="border-r border-slate-600 p-3" style={labelCss}>
+              Code
+            </div>
             <div className="h-44 bg-white" />
           </div>
         )}
@@ -114,7 +155,7 @@ function QuestionBlock({ question, index, options }) {
           <div
             className={`grid grid-cols-[95px_1fr] ${custom.length ? "border-b border-slate-600" : ""}`}
           >
-            <div className="border-r border-slate-600 p-3 font-bold">
+            <div className="border-r border-slate-600 p-3" style={labelCss}>
               Output
             </div>
             <div className="h-32 bg-white" />
@@ -125,7 +166,7 @@ function QuestionBlock({ question, index, options }) {
             key={section.id}
             className={`grid grid-cols-[95px_1fr] ${i < custom.length - 1 ? "border-b border-slate-600" : ""}`}
           >
-            <div className="border-r border-slate-600 p-3 font-bold">
+            <div className="border-r border-slate-600 p-3" style={labelCss}>
               {section.label}
             </div>
             <div className="h-32 bg-white" />
@@ -159,6 +200,8 @@ export default function PreviewModal({
     .map((question) => question.trim());
   const pages = buildPages(validQuestions);
   const selectedRows = getSelectedDetailRows(details, options);
+  const titleStyle = getPartStyle(options, "title");
+  const detailsStyle = getPartStyle(options, "details");
 
   return (
     <div
@@ -207,21 +250,27 @@ export default function PreviewModal({
                   />
                   {pageNumber === 1 && (
                     <>
-                      <div className="text-center font-serif">
-                        <h3 className="text-[23px] font-bold uppercase leading-tight">
+                      <div style={cssTextStyle(titleStyle)}>
+                        <h3 className="uppercase leading-tight">
                           Assignment {details.assignmentNumber}
                         </h3>
-                        <p className="mt-2 text-[17px] font-bold">
+                        <p
+                          className="mt-2"
+                          style={{
+                            fontSize: `${Math.max(10, titleStyle.size - 4)}pt`,
+                          }}
+                        >
                           {details.subject}
                         </p>
                       </div>
                       {selectedRows.length > 0 && (
-                        <div className="mt-7 overflow-hidden border border-slate-500 font-serif text-[16px]">
+                        <div className="mt-7 overflow-hidden border border-slate-500">
                           {selectedRows.map(([label, value], index) => (
                             <PreviewDetailRow
                               key={label}
                               label={label}
                               value={value}
+                              style={detailsStyle}
                               last={index === selectedRows.length - 1}
                             />
                           ))}
@@ -229,7 +278,7 @@ export default function PreviewModal({
                       )}
                     </>
                   )}
-                  <div className="mt-7 space-y-7 font-serif">
+                  <div className="mt-7 space-y-7">
                     {pageQuestions.map((question, index) => (
                       <QuestionBlock
                         key={`${pageNumber}-${index}`}

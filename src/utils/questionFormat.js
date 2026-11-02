@@ -65,9 +65,11 @@ const INLINE_STEP = /\s\d{1,2}[.)]\s+[A-Z]/;
 /* ------------------------------ section headings ------------------------------ */
 
 const BOTH_HEADING =
-  /^sample\s+input\s*(?:\/|&|and|,)?\s*(?:expected|sample)\s+output\s*:?$/i;
+  /^(?:sample|example|test)\s+input\s*(?:\/|&|and|,)?\s*(?:expected|sample|example|test)\s+output\s*:?$/i;
 const NAMED_HEADING =
-  /^(sample\s+input(?:\s*\/\s*(?:call|action))?|expected\s+output|sample\s+output)\s*(?::\s*(.*))?$/i;
+  /^((?:sample|example|test)\s+input(?:\s*\/\s*(?:call|action))?|(?:expected|sample|example|test)\s+output|expected\s+result)\s*(?::\s*(.*))?$/i;
+// "Example:" / "Test Case 2:" on a line of its own: a block of sample lines.
+const EXAMPLE_HEADING = /^(examples?|test\s*cases?)(?:\s*\d+)?\s*:\s*$/i;
 const BARE_HEADING = /^(input|output)\s*:\s*$/i;
 
 function titleCase(label) {
@@ -93,6 +95,15 @@ export function matchSectionHeading(line) {
       kind: /input/i.test(label) ? "input" : "output",
       label,
       rest: (named[2] || "").trim(),
+    };
+  }
+
+  const example = text.match(EXAMPLE_HEADING);
+  if (example) {
+    return {
+      kind: "example",
+      label: titleCase(text.replace(/\s*:\s*$/, "")),
+      rest: "",
     };
   }
 

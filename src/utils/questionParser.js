@@ -149,6 +149,28 @@ function parseNumberedMarkerPlain(line) {
   };
 }
 
+// (1)  [1]  (1.)  – numbers wrapped in brackets.
+function parseBracketMarkerPlain(line) {
+  const clean = normalizeLine(line);
+  const match = clean.match(/^[([](\d{1,3})[)\]]\s*[.:-]?\s*(.*)$/);
+  return match
+    ? { type: "bracket", number: Number(match[1]), content: match[2].trim() }
+    : null;
+}
+
+// a)  (b)  C.  – single letters counting a, b, c ...
+function parseLetterMarkerPlain(line) {
+  const clean = normalizeLine(line);
+  const match = clean.match(/^\(?([A-Za-z])(?:\)|\.)(?:\s+(.*))?$/);
+  if (!match) return null;
+
+  return {
+    type: "letter",
+    number: match[1].toLowerCase().charCodeAt(0) - 96,
+    content: (match[2] || "").trim(),
+  };
+}
+
 function parseRomanMarkerPlain(line) {
   const clean = normalizeLine(line);
   const match = clean.match(/^([IVXLCDM]{1,7})\s*[.)\-:]\s+(.+)$/i);
@@ -161,8 +183,50 @@ function parseRomanMarkerPlain(line) {
 const parseExplicitMarker = withBold(parseExplicitMarkerPlain);
 const parseNumberedMarker = withBold(parseNumberedMarkerPlain);
 const parseRomanMarker = withBold(parseRomanMarkerPlain);
+const parseBracketMarker = withBold(parseBracketMarkerPlain);
+const parseLetterMarker = withBold(parseLetterMarkerPlain);
 
 /* ------------------------- choosing the real questions ------------------------- */
+
+/**
+ * Marks numbered lines that are items of a list inside a question: a run of
+ * adjacent numbered lines whose introduction ends with ":" or says "the
+ * following / these / below" (for example "...with these options:").
+ */
+function markListItems(lines, candidates) {
+  const introducesList = (line) => {
+    const text = stripBold(line).trim();
+    if (/:$/.test(text)) return true;
+    return /\b(following|these|below)\b/i.test(text) && !/[.?!]$/.test(text);
+  };
+
+  const previousLine = (index) => {
+    let before = index - 1;
+    while (before >= 0 && !lines[before]) before -= 1;
+    return before >= 0 ? lines[before] : "";
+  };
+
+  let inList = false;
+  let lastNumber = 0;
+  let lastLine = -10;
+
+  candidates.forEach((candidate) => {
+    const startsList = introducesList(previousLine(candidate.lineIndex));
+    const continuesList =
+      inList &&
+      candidate.lineIndex - lastLine <= 2 &&
+      candidate.number === lastNumber + 1;
+
+    if (startsList || continuesList) {
+      candidate.subItem = true;
+      inList = true;
+      lastNumber = candidate.number;
+      lastLine = candidate.lineIndex;
+    } else {
+      inList = false;
+    }
+  });
+}
 
 /**
  * Pick the longest run of markers that counts upwards (n, n+1, n+2 ...).
@@ -173,13 +237,19 @@ function selectQuestionChain(candidates) {
   const count = candidates.length;
   if (!count) return [];
 
-  const score = new Array(count).fill(1);
+  // A marker that looks like a list item inside a question counts for much less
+  // than a real question marker, so a menu ("1. Add 2. Delete 3. Exit") can
+  // never beat the real numbering when both give the same run length.
+  const unit = (index) => (candidates[index].subItem ? 0.4 : 1);
+
+  const score = candidates.map((_, index) => unit(index));
   const previous = new Array(count).fill(-1);
 
   for (let i = 0; i < count; i += 1) {
     for (let j = 0; j < i; j += 1) {
       const step = candidates[i].number - candidates[j].number;
-      const weight = step === 1 ? 1 : step === 2 || step === 3 ? 0.7 : 0;
+      const weight =
+        (step === 1 ? 1 : step === 2 || step === 3 ? 0.7 : 0) * unit(i);
       if (!weight) continue;
 
       // ">=" prefers the nearest earlier marker when scores tie.
@@ -293,15 +363,19 @@ export function detectQuestions(text, config = DEFAULT_PARSER_CONFIG) {
     .split("\n")
     .map(normalizeLine);
 
+  // Auto-detect the numbering style of THIS file: try each style in order and
+  // use the first one that forms a real run (1, 2, 3 ...). If none does, fall
+  // back to the first style that matched anything at all.
   const parsers = [
     ["explicit", parseExplicitMarker],
     ["numbered", parseNumberedMarker],
+    ["bracket", parseBracketMarker],
     ["roman", parseRomanMarker],
+    ["letter", parseLetterMarker],
   ];
 
-  let parser = null;
-  let format = "unknown";
-  let candidates = [];
+  let picked = null;
+  let firstMatch = null;
 
   for (const [name, fn] of parsers) {
     const found = [];
@@ -311,13 +385,27 @@ export function detectQuestions(text, config = DEFAULT_PARSER_CONFIG) {
       if (marker) found.push({ ...marker, lineIndex: index });
     });
 
-    if (found.length) {
-      parser = fn;
-      candidates = found;
-      format = name === "explicit" ? found[0].type : name;
+    if (!found.length) continue;
+
+    markListItems(lines, found);
+    const entry = { name, fn, found };
+    firstMatch = firstMatch || entry;
+
+    if (selectQuestionChain(found).length >= 2) {
+      picked = entry;
       break;
     }
   }
+
+  picked = picked || firstMatch;
+
+  const parser = picked?.fn || null;
+  const candidates = picked?.found || [];
+  const format = picked
+    ? picked.name === "explicit"
+      ? candidates[0].type
+      : picked.name
+    : "unknown";
 
   if (parser) {
     const chain = selectQuestionChain(candidates);

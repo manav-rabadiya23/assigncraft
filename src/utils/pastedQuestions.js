@@ -9,7 +9,9 @@ import { stripQuestionNumber } from "./questionFormat";
  * 3. As a last resort every non-empty line is a question.
  */
 export function parsePastedQuestions(text) {
-  const normalized = String(text || "").replace(/\r/g, "").trim();
+  const normalized = String(text || "")
+    .replace(/\r/g, "")
+    .trim();
   if (!normalized) return [];
 
   const detected = detectQuestions(normalized);

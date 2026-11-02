@@ -29,8 +29,47 @@ scripts/            dev helpers (see below)
 
 ## Supported formats
 
-- [Normal side (assignment generator)](docs/SUPPORTED_FORMATS_NORMAL.md)
-- [Python side (Jupyter tools, Continue Assignment)](docs/SUPPORTED_FORMATS_PYTHON.md)
+See [docs/SUPPORTED_FORMATS.md](docs/SUPPORTED_FORMATS.md) for what you can upload, how a question file should look, and a worked example.
+
+## Home page wizard
+
+`pages/HomePage.jsx` shows the tool in four steps (questions, details, layout and style,
+preview and download). The step is kept in the address (`#step-2`), so the browser Back and
+Forward buttons work. The step bar and the Back / Next buttons are in `components/WizardNav.jsx`,
+and the recap on the last step is `components/WizardSummary.jsx`. The sections themselves,
+their colours and all handlers are unchanged. Each step's checks (`validateQuestionsStep`,
+`validateDetailsStep`, `validateLayoutStep`) run on Next; Preview / Download run all three.
+
+## Contact form
+
+The About page has a contact form (`components/ContactSection.jsx`). The visitor fills in the
+topic (dropdown), name, **mobile number**, **email** and message (all required), then chooses:
+
+- **Send to Email** – opens their email app with the message already written to your address.
+- **Send to WhatsApp** – opens WhatsApp with the message already written to your number.
+
+They only press Send in that app. Nothing is sent through a server, so no account or password is needed.
+
+Setup: open `src/constants/contact.js` and type your own details:
+
+- `OWNER_WHATSAPP` – country code first, digits only, e.g. `"919876543210"`.
+- `OWNER_EMAIL` – your email address.
+- `OWNER_PHONE_DISPLAY` – the number shown on the About page and in the contact card.
+  **It is a random placeholder (`+91 98765 43210`) until you replace it.**
+
+(`VITE_CONTACT_WHATSAPP` / `VITE_CONTACT_EMAIL` in Vercel also work and win if set.)
+If a number or email is not set, that button shows a friendly message and the visitor can copy
+their message instead.
+
+When a file is read badly, the Home page shows **Report this file format**, which
+opens this form with the file details prefilled.
+
+## Text style
+
+`utils/textStyles.js` defines the fonts, presets and per-part styles (title, details,
+labels, question, sample headings, sample text, header/footer). The same style is
+read by the Word generator, the PDF generator and the preview, and edited in
+`components/TextStyleSection.jsx`. It is saved in the browser (`assigncraft-text-style`).
 
 ## Saved details (autofill)
 

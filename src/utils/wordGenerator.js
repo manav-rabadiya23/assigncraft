@@ -5,6 +5,7 @@ import {
   Document,
   Footer,
   Header,
+  LineRuleType,
   Packer,
   PageNumber,
   Paragraph,
@@ -16,6 +17,7 @@ import {
 } from "docx";
 import { createAssignmentBaseName } from "./fileName";
 import { parseQuestionBlock, splitBold } from "./questionFormat";
+import { getLineSpacing, getPartStyle, wordRunProps } from "./textStyles";
 import {
   getSelectedDetailRows,
   getSelectedFooterParts,
@@ -43,34 +45,27 @@ function createTableBorders() {
   };
 }
 
-function createCell({ text = "", width = 80, bold = false, blankLines = 0 }) {
+function createCell({
+  text = "",
+  width = 80,
+  bold = false,
+  blankLines = 0,
+  style,
+}) {
   const paragraphs = [
     new Paragraph({
       spacing: {
         before: 80,
         after: 80,
       },
-      children: [
-        new TextRun({
-          text,
-          bold,
-          size: 24,
-          font: "Times New Roman",
-        }),
-      ],
+      children: [new TextRun({ text, ...wordRunProps(style, { bold }) })],
     }),
   ];
 
   for (let index = 0; index < blankLines; index += 1) {
     paragraphs.push(
       new Paragraph({
-        children: [
-          new TextRun({
-            text: " ",
-            size: 24,
-            font: "Times New Roman",
-          }),
-        ],
+        children: [new TextRun({ text: " ", ...wordRunProps(style) })],
       }),
     );
   }
@@ -90,8 +85,17 @@ function createCell({ text = "", width = 80, bold = false, blankLines = 0 }) {
   });
 }
 
-const BODY_FONT = "Times New Roman";
-const CODE_FONT = "Courier New";
+const WORD_ALIGNMENT = {
+  left: AlignmentType.LEFT,
+  center: AlignmentType.CENTER,
+  right: AlignmentType.RIGHT,
+  justify: AlignmentType.BOTH,
+};
+
+const lineSpacingProps = (spacing) =>
+  spacing > 1
+    ? { line: Math.round(240 * spacing), lineRule: LineRuleType.AUTO }
+    : {};
 
 /** Indent for "• item", "◦ sub-item" and "1. step" lines of a statement. */
 function getListIndent(line) {
@@ -112,12 +116,18 @@ function createQuestionParagraphs(question, options) {
   const { statement, sections } = parseQuestionBlock(question);
   const paragraphs = [];
 
+  const questionStyle = getPartStyle(options, "question");
+  const labelStyle = getPartStyle(options, "sampleLabel");
+  const sampleStyle = getPartStyle(options, "sample");
+  const spacing = lineSpacingProps(getLineSpacing(options));
+
   statement.forEach((line, index) => {
     const indent = getListIndent(line);
 
     paragraphs.push(
       new Paragraph({
-        spacing: { before: index === 0 ? 80 : 40, after: 40 },
+        alignment: WORD_ALIGNMENT[questionStyle.align],
+        spacing: { before: index === 0 ? 80 : 40, after: 40, ...spacing },
         indent: indent
           ? { left: indent.left, hanging: indent.hanging }
           : undefined,
@@ -125,9 +135,7 @@ function createQuestionParagraphs(question, options) {
           (run) =>
             new TextRun({
               text: run.text,
-              bold: run.bold,
-              size: 24,
-              font: BODY_FONT,
+              ...wordRunProps(questionStyle, { bold: run.bold }),
             }),
         ),
       }),
@@ -143,9 +151,7 @@ function createQuestionParagraphs(question, options) {
           children: [
             new TextRun({
               text: `${section.label}:`,
-              bold: true,
-              size: 22,
-              font: BODY_FONT,
+              ...wordRunProps(labelStyle),
             }),
           ],
         }),
@@ -154,9 +160,11 @@ function createQuestionParagraphs(question, options) {
       section.lines.forEach((line) => {
         paragraphs.push(
           new Paragraph({
-            spacing: { before: 0, after: 0 },
+            spacing: { before: 0, after: 0, ...spacing },
             indent: { left: 240 },
-            children: [new TextRun({ text: line, size: 21, font: CODE_FONT })],
+            children: [
+              new TextRun({ text: line, ...wordRunProps(sampleStyle) }),
+            ],
           }),
         );
       });
@@ -165,7 +173,11 @@ function createQuestionParagraphs(question, options) {
 
   return paragraphs.length
     ? paragraphs
-    : [new Paragraph({ children: [new TextRun({ text: "", size: 24 })] })];
+    : [
+        new Paragraph({
+          children: [new TextRun({ text: "", ...wordRunProps(questionStyle) })],
+        }),
+      ];
 }
 
 function createRichCell({ paragraphs, width = 80 }) {
@@ -185,6 +197,7 @@ function createDetailsBlock(details, options) {
 
 function createDetailsTable(details, options) {
   const rows = getSelectedDetailRows(details, options);
+  const detailsStyle = getPartStyle(options, "details");
 
   return new Table({
     width: {
@@ -201,10 +214,12 @@ function createDetailsTable(details, options) {
               text: label,
               width: 30,
               bold: true,
+              style: detailsStyle,
             }),
             createCell({
               text: value,
               width: 70,
+              style: detailsStyle,
             }),
           ],
         }),
@@ -213,13 +228,16 @@ function createDetailsTable(details, options) {
 }
 
 function createQuestionTable(question, index, options) {
+  const labelStyle = getPartStyle(options, "labels");
+  const questionStyle = getPartStyle(options, "question");
+
   const rows = [
     new TableRow({
       children: [
         createCell({
           text: `Q-${index + 1}`,
           width: 20,
-          bold: true,
+          style: labelStyle,
         }),
         createRichCell({
           paragraphs: createQuestionParagraphs(question, options),
@@ -236,9 +254,10 @@ function createQuestionTable(question, index, options) {
           createCell({
             text: "Code",
             width: 20,
-            bold: true,
+            style: labelStyle,
           }),
           createCell({
+            style: questionStyle,
             width: 80,
             blankLines: 8,
           }),
@@ -254,9 +273,10 @@ function createQuestionTable(question, index, options) {
           createCell({
             text: "Output",
             width: 20,
-            bold: true,
+            style: labelStyle,
           }),
           createCell({
+            style: questionStyle,
             width: 80,
             blankLines: 6,
           }),
@@ -274,9 +294,10 @@ function createQuestionTable(question, index, options) {
             createCell({
               text: section.label,
               width: 20,
-              bold: true,
+              style: labelStyle,
             }),
             createCell({
+              style: questionStyle,
               width: 80,
               blankLines: 6,
             }),
@@ -307,6 +328,8 @@ function createHeader(details, options) {
     return undefined;
   }
 
+  const style = getPartStyle(options, "headerFooter");
+
   return new Header({
     children: [
       new Paragraph({
@@ -317,8 +340,7 @@ function createHeader(details, options) {
         children: [
           new TextRun({
             text: values.join(" | "),
-            size: 18,
-            font: "Times New Roman",
+            ...wordRunProps(style),
           }),
         ],
       }),
@@ -337,14 +359,14 @@ function createFooter(details, options) {
     return undefined;
   }
 
+  const style = getPartStyle(options, "headerFooter");
   const children = [];
 
   if (showDetails) {
     children.push(
       new TextRun({
         text: values.join(" | "),
-        size: 18,
-        font: "Times New Roman",
+        ...wordRunProps(style),
       }),
     );
   }
@@ -354,8 +376,7 @@ function createFooter(details, options) {
       children.push(
         new TextRun({
           text: "  |  ",
-          size: 18,
-          font: "Times New Roman",
+          ...wordRunProps(style),
         }),
       );
     }
@@ -363,13 +384,11 @@ function createFooter(details, options) {
     children.push(
       new TextRun({
         text: "Page ",
-        size: 18,
-        font: "Times New Roman",
+        ...wordRunProps(style),
       }),
       new TextRun({
         children: [PageNumber.CURRENT],
-        size: 18,
-        font: "Times New Roman",
+        ...wordRunProps(style),
       }),
     );
   }
@@ -389,33 +408,37 @@ export async function generateWordAssignment({ details, questions, options }) {
     .map((question) => question.trim())
     .filter(Boolean);
 
+  const titleStyle = getPartStyle(options, "title");
+  const subjectStyle = {
+    ...titleStyle,
+    size: Math.max(10, titleStyle.size - 4),
+  };
+  const labelStyle = getPartStyle(options, "labels");
+  const headingStyle = { ...labelStyle, size: labelStyle.size + 1 };
+
   const children = [
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: WORD_ALIGNMENT[titleStyle.align],
       spacing: {
         after: 120,
       },
       children: [
         new TextRun({
           text: `ASSIGNMENT ${details.assignmentNumber || ""}`,
-          bold: true,
-          size: 34,
-          font: "Times New Roman",
+          ...wordRunProps(titleStyle),
         }),
       ],
     }),
 
     new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: WORD_ALIGNMENT[titleStyle.align],
       spacing: {
         after: 300,
       },
       children: [
         new TextRun({
           text: details.subject || "",
-          bold: true,
-          size: 26,
-          font: "Times New Roman",
+          ...wordRunProps(subjectStyle),
         }),
       ],
     }),
@@ -444,9 +467,7 @@ export async function generateWordAssignment({ details, questions, options }) {
         children: [
           new TextRun({
             text: `Question ${index + 1}`,
-            bold: true,
-            size: 26,
-            font: "Times New Roman",
+            ...wordRunProps(headingStyle),
           }),
         ],
       }),

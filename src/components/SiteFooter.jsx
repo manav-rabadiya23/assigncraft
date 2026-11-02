@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { DEVLOKS_URL, PORTFOLIO_URL } from "../constants/defaults";
 
 export default function SiteFooter() {
@@ -90,7 +91,13 @@ export default function SiteFooter() {
 
         <p className="mt-4 text-center text-[11px] leading-5 text-slate-500">
           © {new Date().getFullYear()} AssignCraft · Developed by Manav Rabadiya
-          · Presented by DEVLOKS
+          · Presented by DEVLOKS ·{" "}
+          <Link
+            to="/about#contact"
+            className="font-semibold text-slate-300 underline underline-offset-2 hover:text-white"
+          >
+            Report a problem
+          </Link>
         </p>
       </div>
     </footer>

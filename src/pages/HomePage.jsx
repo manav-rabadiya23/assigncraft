@@ -1,16 +1,20 @@
 import SEO from "../components/SEO";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import "../App.css";
 import AssignmentDetailsSection from "../components/AssignmentDetailsSection";
 import DocumentOptions from "../components/DocumentOptions";
+import TextStyleSection from "../components/TextStyleSection";
 import Header from "../components/Header";
 import MessageBanner from "../components/MessageBanner";
 import PreviewModal from "../components/PreviewModal";
 import QuestionsSection from "../components/QuestionsSection";
 import SiteFooter from "../components/SiteFooter";
 import UploadSection from "../components/UploadSection";
+import { WizardActions, WizardStepper } from "../components/WizardNav";
+import WizardSummary from "../components/WizardSummary";
 import { DEFAULT_DOCUMENT_OPTIONS } from "../constants/defaults";
 import {
   downloadAssignmentPdf,
@@ -25,15 +29,26 @@ import {
 import { focusAndHighlight } from "../utils/focusTarget";
 import { detectQuestions } from "../utils/questionParser";
 import { parsePastedQuestions } from "../utils/pastedQuestions";
+import { loadSavedTextStyle, saveTextStyle } from "../utils/textStyles";
 import { generateWordAssignment } from "../utils/wordGenerator";
 
+// The wizard step lives in the address (#step-2 ...), so the browser's Back and
+// Forward buttons move between steps.
+const stepFromHash = (hash) => {
+  const match = /^#step-([1-4])$/.exec(hash || "");
+  return match ? Number(match[1]) : 1;
+};
+
 function HomePage() {
+  const navigate = useNavigate();
+  const [detectionReport, setDetectionReport] = useState(null);
   const [details, setDetails] = useState(getSavedProfile);
   const [customDetails, setCustomDetails] = useState([]);
   const [questions, setQuestions] = useState([]);
-  const [documentOptions, setDocumentOptions] = useState(
-    DEFAULT_DOCUMENT_OPTIONS,
-  );
+  const [documentOptions, setDocumentOptions] = useState(() => ({
+    ...DEFAULT_DOCUMENT_OPTIONS,
+    textStyle: loadSavedTextStyle(), // remembered on this device
+  }));
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [pastedQuestions, setPastedQuestions] = useState("");
   const [isReading, setIsReading] = useState(false);
@@ -43,6 +58,44 @@ function HomePage() {
   const [message, setMessage] = useState({ type: "", text: "" });
 
   const questionRefs = useRef([]);
+
+  const location = useLocation();
+  const step = stepFromHash(location.hash);
+  const stepperRef = useRef(null);
+  const previousStep = useRef(step);
+  const skipScroll = useRef(false);
+
+  const setStep = (target) =>
+    navigate({ hash: target === 1 ? "" : `#step-${target}` });
+
+  // Reloading the page empties the form, so always start again from step 1.
+  useEffect(() => {
+    if (location.hash.startsWith("#step-")) {
+      navigate({ hash: "" }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Scroll to the top of the wizard when the step changes (unless an error is
+  // already taking the user to a specific field).
+  useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
+
+    if (skipScroll.current) {
+      skipScroll.current = false;
+      return;
+    }
+
+    stepperRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [step]);
+
+  useEffect(() => {
+    saveTextStyle(documentOptions.textStyle);
+  }, [documentOptions.textStyle]);
+
+  const setTextStyle = (textStyle) =>
+    setDocumentOptions((current) => ({ ...current, textStyle }));
 
   useEffect(() => {
     saveProfile(details);
@@ -218,7 +271,10 @@ function HomePage() {
       const newFileRecords = [];
 
       const detectionWarnings = [];
+      const reportFiles = [];
+      let reportSnippet = "";
       let lowConfidenceCount = 0;
+      setDetectionReport(null);
       let totalOcrFiles = 0;
 
       for (
@@ -260,6 +316,27 @@ function HomePage() {
             detectionWarnings.push(`${file.name}: ${warning}`),
           );
 
+          // Kept so the student can report a file that was not read well.
+          const looksWrong =
+            detected.questions.length === 0 ||
+            detected.confidence < 85 ||
+            detected.usedFallback ||
+            (detected.warnings || []).length > 0;
+
+          reportFiles.push({
+            type: extension,
+            questions: detected.questions.length,
+            confidence: detected.confidence,
+            style: detected.format || "none",
+            usedOcr,
+            warnings: (detected.warnings || []).slice(0, 4),
+            looksWrong,
+          });
+
+          if (looksWrong && !reportSnippet) {
+            reportSnippet = extractedText.slice(0, 1500);
+          }
+
           if (usedOcr) {
             totalOcrFiles += 1;
           }
@@ -283,6 +360,13 @@ function HomePage() {
         } catch (fileError) {
           console.error(`File reading error for ${file.name}:`, fileError);
 
+          reportFiles.push({
+            type: extension,
+            questions: 0,
+            error: String(fileError?.message || fileError),
+            looksWrong: true,
+          });
+
           newFileRecords.push({
             id: `${file.name}-${file.lastModified}-${fileIndex}-${Date.now()}`,
             name: file.name,
@@ -296,6 +380,12 @@ function HomePage() {
       setUploadedFiles((current) => [...current, ...newFileRecords]);
 
       setQuestions((current) => [...current, ...detectedFromAllFiles]);
+
+      setDetectionReport(
+        reportFiles.some((file) => file.looksWrong)
+          ? { files: reportFiles, snippet: reportSnippet }
+          : null,
+      );
 
       questionRefs.current = [];
 
@@ -759,14 +849,23 @@ function HomePage() {
     }
   };
 
-  // Shows the error AND takes the user to the place that needs fixing.
-  const fail = (text, target) => {
+  // Shows the error AND takes the user to the place that needs fixing,
+  // switching to the right step first when that field is on another step.
+  const fail = (text, target, targetStep) => {
     showMessage("error", text);
-    focusAndHighlight(target);
+
+    if (targetStep && targetStep !== step) {
+      skipScroll.current = true;
+      setStep(targetStep);
+      window.setTimeout(() => focusAndHighlight(target), 150);
+    } else {
+      focusAndHighlight(target);
+    }
+
     return false;
   };
 
-  const validateForm = () => {
+  const validateDetailsStep = () => {
     const required = [
       ["Course Name", details.courseName, "courseName"],
       ["Full Name", details.fullName, "fullName"],
@@ -780,16 +879,25 @@ function HomePage() {
     const missing = required.find(([, value]) => !value.trim());
 
     if (missing) {
-      return fail(`Please enter ${missing[0]}.`, missing[2]);
+      return fail(`Please enter ${missing[0]}.`, missing[2], 2);
     }
 
+    return true;
+  };
+
+  const validateQuestionsStep = () => {
     if (!questions.some((question) => question.trim())) {
       return fail(
         "Please upload files, paste questions or add at least one question.",
         "upload-section",
+        1,
       );
     }
 
+    return true;
+  };
+
+  const validateLayoutStep = () => {
     const headerMode = documentOptions.headerMode || "none";
     const footerMode = documentOptions.footerMode || "none";
 
@@ -805,6 +913,7 @@ function HomePage() {
       return fail(
         "Select at least one detail for the header or set Header to Don't show.",
         "header-options",
+        3,
       );
     }
 
@@ -816,10 +925,35 @@ function HomePage() {
       return fail(
         "Select at least one detail for the footer, enable Page Number, or set Footer to Don't show.",
         "footer-options",
+        3,
       );
     }
 
     return true;
+  };
+
+  // Same checks and same order as before, used by Preview / Download / Print.
+  const validateForm = () =>
+    validateDetailsStep() && validateQuestionsStep() && validateLayoutStep();
+
+  // Checks of each step; moving forward runs the checks of every step passed.
+  const stepValidators = {
+    1: validateQuestionsStep,
+    2: validateDetailsStep,
+    3: validateLayoutStep,
+  };
+
+  const goToStep = (target) => {
+    if (target <= step) {
+      setStep(target);
+      return;
+    }
+
+    for (let current = step; current < target; current += 1) {
+      if (stepValidators[current] && !stepValidators[current]()) return;
+    }
+
+    setStep(target);
   };
 
   const payload = () => ({
@@ -930,100 +1064,171 @@ function HomePage() {
         </header>
 
         <main className="mx-auto -mt-14 max-w-5xl space-y-6 px-4 pb-12">
-          <UploadSection
-            isReading={isReading}
-            uploadedFiles={uploadedFiles}
-            onUpload={handleFileUpload}
-            onRemoveFile={removeUploadedFile}
-            onClearFiles={clearUploadedFiles}
-            progressMessage={progressMessage}
-            pastedQuestions={pastedQuestions}
-            onPastedQuestionsChange={setPastedQuestions}
-            onAddPastedQuestions={addPastedQuestions}
-          />
+          <WizardStepper step={step} onGo={goToStep} stepperRef={stepperRef} />
 
-          <AssignmentDetailsSection
-            details={details}
-            onChange={handleDetailsChange}
-            customDetails={customDetails}
-            onAddCustomDetail={addCustomDetail}
-            onUpdateCustomDetail={updateCustomDetail}
-            onDeleteCustomDetail={deleteCustomDetail}
-          />
+          {/* Step 1: questions */}
+          <div className={step === 1 ? "space-y-6" : "hidden"}>
+            <UploadSection
+              isReading={isReading}
+              uploadedFiles={uploadedFiles}
+              onUpload={handleFileUpload}
+              onRemoveFile={removeUploadedFile}
+              onClearFiles={clearUploadedFiles}
+              progressMessage={progressMessage}
+              pastedQuestions={pastedQuestions}
+              onPastedQuestionsChange={setPastedQuestions}
+              onAddPastedQuestions={addPastedQuestions}
+            />
 
-          <DocumentOptions
-            options={documentOptions}
-            customDetails={customDetails}
-            onToggleDetailsTable={toggleDetailsTable}
-            onToggleTableField={toggleTableField}
-            onReorderTableField={reorderTableField}
-            onSetHeaderMode={setHeaderMode}
-            onToggleHeaderField={toggleHeaderField}
-            onReorderHeaderField={reorderHeaderField}
-            onSetFooterMode={setFooterMode}
-            onToggleFooterField={toggleFooterField}
-            onReorderFooterField={reorderFooterField}
-            onTogglePageNumbers={togglePageNumbers}
-            onToggleCode={toggleCode}
-            onToggleOutput={toggleOutput}
-            onToggleSamples={toggleSamples}
-            onAddCustomAnswerSection={addCustomAnswerSection}
-            onToggleCustomAnswerSection={toggleCustomAnswerSection}
-            onRenameCustomAnswerSection={renameCustomAnswerSection}
-            onDeleteCustomAnswerSection={deleteCustomAnswerSection}
-          />
+            {detectionReport && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-indigo-900">
+                <p className="max-w-xl">
+                  <span className="font-bold">
+                    Questions not detected correctly?
+                  </span>{" "}
+                  Send me this file&apos;s details and I will add support for
+                  its format.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/about#contact", {
+                      state: { report: detectionReport },
+                    })
+                  }
+                  className="rounded-xl bg-indigo-600 px-4 py-2 font-bold text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300"
+                >
+                  Report this file format
+                </button>
+              </div>
+            )}
 
-          <QuestionsSection
-            questions={questions}
-            questionRefs={questionRefs}
-            onUpdate={updateQuestion}
-            onAddEnd={addQuestionAtEnd}
-            onAddBefore={addQuestionBefore}
-            onAddAfter={addQuestionAfter}
-            onDelete={deleteQuestion}
-            onMove={moveQuestion}
-            onReorder={reorderQuestion}
-            onClear={clearAllQuestions}
-          />
+            <QuestionsSection
+              questions={questions}
+              questionRefs={questionRefs}
+              onUpdate={updateQuestion}
+              onAddEnd={addQuestionAtEnd}
+              onAddBefore={addQuestionBefore}
+              onAddAfter={addQuestionAfter}
+              onDelete={deleteQuestion}
+              onMove={moveQuestion}
+              onReorder={reorderQuestion}
+              onClear={clearAllQuestions}
+            />
 
-          <MessageBanner message={message} />
+            <MessageBanner message={message} />
+            <WizardActions
+              onNext={() => goToStep(2)}
+              nextLabel="Next: Your details"
+            />
+          </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <button
-              type="button"
-              disabled={isReading || isGenerating}
-              onClick={openPreview}
-              className="rounded-2xl border border-indigo-200 bg-white px-5 py-4 font-bold text-indigo-700 shadow-lg shadow-slate-200/60 transition hover:bg-indigo-50 disabled:opacity-60"
-            >
-              Preview
-            </button>
+          {/* Step 2: student details */}
+          <div className={step === 2 ? "space-y-6" : "hidden"}>
+            <AssignmentDetailsSection
+              details={details}
+              onChange={handleDetailsChange}
+              customDetails={customDetails}
+              onAddCustomDetail={addCustomDetail}
+              onUpdateCustomDetail={updateCustomDetail}
+              onDeleteCustomDetail={deleteCustomDetail}
+            />
 
-            <button
-              type="button"
-              disabled={isReading || isGenerating}
-              onClick={downloadWord}
-              className="rounded-2xl bg-indigo-600 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:opacity-60"
-            >
-              Download Word
-            </button>
+            <MessageBanner message={message} />
+            <WizardActions
+              onBack={() => goToStep(1)}
+              onNext={() => goToStep(3)}
+              nextLabel="Next: Layout and style"
+            />
+          </div>
 
-            <button
-              type="button"
-              disabled={isReading || isGenerating}
-              onClick={downloadPdf}
-              className="rounded-2xl bg-violet-600 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-violet-700 disabled:opacity-60"
-            >
-              Download PDF
-            </button>
+          {/* Step 3: layout and text style */}
+          <div className={step === 3 ? "space-y-6" : "hidden"}>
+            <DocumentOptions
+              options={documentOptions}
+              customDetails={customDetails}
+              onToggleDetailsTable={toggleDetailsTable}
+              onToggleTableField={toggleTableField}
+              onReorderTableField={reorderTableField}
+              onSetHeaderMode={setHeaderMode}
+              onToggleHeaderField={toggleHeaderField}
+              onReorderHeaderField={reorderHeaderField}
+              onSetFooterMode={setFooterMode}
+              onToggleFooterField={toggleFooterField}
+              onReorderFooterField={reorderFooterField}
+              onTogglePageNumbers={togglePageNumbers}
+              onToggleCode={toggleCode}
+              onToggleOutput={toggleOutput}
+              onToggleSamples={toggleSamples}
+              onAddCustomAnswerSection={addCustomAnswerSection}
+              onToggleCustomAnswerSection={toggleCustomAnswerSection}
+              onRenameCustomAnswerSection={renameCustomAnswerSection}
+              onDeleteCustomAnswerSection={deleteCustomAnswerSection}
+            />
 
-            <button
-              type="button"
-              disabled={isReading || isGenerating}
-              onClick={printPdf}
-              className="rounded-2xl bg-slate-800 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-slate-900 disabled:opacity-60"
-            >
-              Print
-            </button>
+            <TextStyleSection
+              options={documentOptions}
+              onChange={setTextStyle}
+            />
+
+            <MessageBanner message={message} />
+            <WizardActions
+              onBack={() => goToStep(2)}
+              onNext={() => goToStep(4)}
+              nextLabel="Next: Preview and download"
+            />
+          </div>
+
+          {/* Step 4: preview and download */}
+          <div className={step === 4 ? "space-y-6" : "hidden"}>
+            <WizardSummary
+              details={details}
+              questions={questions}
+              options={documentOptions}
+              onEditStep={goToStep}
+            />
+
+            <MessageBanner message={message} />
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <button
+                type="button"
+                disabled={isReading || isGenerating}
+                onClick={openPreview}
+                className="rounded-2xl border border-indigo-200 bg-white px-5 py-4 font-bold text-indigo-700 shadow-lg shadow-slate-200/60 transition hover:bg-indigo-50 disabled:opacity-60"
+              >
+                Preview
+              </button>
+
+              <button
+                type="button"
+                disabled={isReading || isGenerating}
+                onClick={downloadWord}
+                className="rounded-2xl bg-indigo-600 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-indigo-700 disabled:opacity-60"
+              >
+                Download Word
+              </button>
+
+              <button
+                type="button"
+                disabled={isReading || isGenerating}
+                onClick={downloadPdf}
+                className="rounded-2xl bg-violet-600 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-violet-700 disabled:opacity-60"
+              >
+                Download PDF
+              </button>
+
+              <button
+                type="button"
+                disabled={isReading || isGenerating}
+                onClick={printPdf}
+                className="rounded-2xl bg-slate-800 px-5 py-4 font-bold text-white shadow-lg transition hover:bg-slate-900 disabled:opacity-60"
+              >
+                Print
+              </button>
+            </div>
+
+            <WizardActions onBack={() => goToStep(3)} />
           </div>
 
           <p className="text-center text-xs text-slate-500">

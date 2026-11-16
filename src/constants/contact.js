@@ -11,9 +11,9 @@
  *
  * (VITE_CONTACT_WHATSAPP / VITE_CONTACT_EMAIL in Vercel also work and win if set.)
  * ========================================================================== */
-const OWNER_WHATSAPP = "";
-const OWNER_EMAIL = "";
-export const OWNER_PHONE_DISPLAY = "+91 98765 43210";
+const OWNER_WHATSAPP = "918200833181";
+const OWNER_EMAIL = "rabadiyamanav789@gmail.com";
+export const OWNER_PHONE_DISPLAY = "+91 8200833181";
 
 const digitsOnly = (value) => String(value || "").replace(/\D/g, "");
 

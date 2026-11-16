@@ -1230,11 +1230,6 @@ function HomePage() {
 
             <WizardActions onBack={() => goToStep(3)} />
           </div>
-
-          <p className="text-center text-xs text-slate-500">
-            Normal PDF/DOCX processing stays in your browser. OCR also runs
-            locally in the browser with Tesseract.js.
-          </p>
         </main>
 
         {showPreview && (
@@ -1252,18 +1247,6 @@ function HomePage() {
             isGenerating={isGenerating}
           />
         )}
-
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Developed by{" "}
-          <a
-            href="https://rabadiya-manav.vercel.app/"
-            target="_blank"
-            rel="noreferrer"
-            className="font-semibold text-indigo-600 hover:text-indigo-700"
-          >
-            Manav Rabadiya
-          </a>
-        </p>
 
         <SiteFooter />
       </div>

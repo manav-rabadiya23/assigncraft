@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaEnvelope, FaPhoneAlt, FaWhatsapp } from "react-icons/fa";
+import { FaEnvelope, FaPhoneAlt } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import {
   CONTACT_EMAIL,
   CONTACT_TOPICS,
-  CONTACT_WHATSAPP,
   OWNER_PHONE_DISPLAY,
   OWNER_PHONE_LINK,
 } from "../constants/contact";
 import { focusAndHighlight } from "../utils/focusTarget";
-import { buildEmailBody, buildWhatsAppText } from "../utils/contactMessage";
+import { buildEmailBody } from "../utils/contactMessage";
 import { openLink } from "../utils/openLink";
 
 const inputClass =
@@ -41,14 +40,6 @@ function describeReport(report) {
       return parts.filter(Boolean).join(" | ");
     })
     .join("\n");
-}
-
-function technicalInfo() {
-  return [
-    `Page: ${window.location.pathname}`,
-    `Screen: ${window.screen.width}x${window.screen.height}`,
-    navigator.userAgent.slice(0, 90),
-  ].join("\n");
 }
 
 function Field({ id, label, required, error, hint, className = "", children }) {
@@ -124,7 +115,6 @@ export default function ContactSection() {
     mobile: "",
     email: "",
     message: "",
-    includeTech: true,
     includeSnippet: false,
   });
   const [errors, setErrors] = useState({});
@@ -158,7 +148,7 @@ export default function ContactSection() {
     if (form.name.trim().length < 2) next.name = "Please enter your name.";
     if (!form.mobile.trim()) next.mobile = "Please enter your mobile number.";
     else if (!isValidMobile(form.mobile.trim())) {
-      next.mobile = "Enter a valid number, for example +91 98765 43210.";
+      next.mobile = "Enter a valid number, for example +91 8200833181.";
     }
     if (!form.email.trim()) next.email = "Please enter your email address.";
     else if (!EMAIL_PATTERN.test(form.email.trim())) {
@@ -210,34 +200,8 @@ export default function ContactSection() {
       message: form.message.trim(),
       report: reportSummary,
       snippet: form.includeSnippet ? report?.snippet : "",
-      tech: form.includeTech ? technicalInfo() : "",
+      tech: "",
     };
-
-    if (channel === "whatsapp") {
-      const text = buildWhatsAppText(fields);
-      setPendingMessage(text);
-
-      if (!CONTACT_WHATSAPP) {
-        console.warn(
-          "Contact form: set OWNER_WHATSAPP in src/constants/contact.js.",
-        );
-        setStatus({
-          state: "error",
-          text: "WhatsApp is not available right now. Please use Email, or copy your message below.",
-        });
-        return;
-      }
-
-      openLink(
-        `https://wa.me/${CONTACT_WHATSAPP}?text=${encodeURIComponent(text)}`,
-        { newTab: true },
-      );
-      setStatus({
-        state: "info",
-        text: "WhatsApp is opening with your message ready. Just press Send there. If nothing opened, copy the message below.",
-      });
-      return;
-    }
 
     const body = buildEmailBody(fields);
     setPendingMessage(body);
@@ -248,7 +212,7 @@ export default function ContactSection() {
       );
       setStatus({
         state: "error",
-        text: "Email is not available right now. Please use WhatsApp, or copy your message below.",
+        text: "Email is not configured. Please copy the message below and send manually.",
       });
       return;
     }
@@ -291,9 +255,8 @@ export default function ContactSection() {
           <aside className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 text-white sm:p-10">
             <h3 className="text-xl font-black">Contact details</h3>
             <p className="mt-2 text-sm leading-6 text-indigo-100">
-              Write your message and choose how to send it. Your email app or
-              WhatsApp opens with everything already written, you only press
-              Send.
+              Write your message and send it via email. Your email app opens
+              with everything already written — just press Send.
             </p>
 
             <ul className="mt-8 space-y-3">
@@ -303,14 +266,6 @@ export default function ContactSection() {
                 value={OWNER_PHONE_DISPLAY}
                 href={OWNER_PHONE_LINK}
               />
-              {CONTACT_WHATSAPP && (
-                <ContactLine
-                  icon={<FaWhatsapp />}
-                  label="WhatsApp"
-                  value={`+${CONTACT_WHATSAPP}`}
-                  href={`https://wa.me/${CONTACT_WHATSAPP}`}
-                />
-              )}
               {CONTACT_EMAIL && (
                 <ContactLine
                   icon={<FaEnvelope />}
@@ -420,7 +375,7 @@ export default function ContactSection() {
                 label="Mobile number"
                 required
                 error={errors.mobile}
-                hint="With country code, e.g. +91 98765 43210"
+                hint="With country code, e.g. +91 8200833181"
               >
                 <input
                   id="contact-mobile"
@@ -434,7 +389,7 @@ export default function ContactSection() {
                     errors.mobile ? "contact-mobile-error" : undefined
                   }
                   className={`${inputClass} ${errors.mobile ? "border-red-400" : ""}`}
-                  placeholder="+91 98765 43210"
+                  placeholder="+91 8200833181"
                   maxLength={20}
                 />
               </Field>
@@ -486,21 +441,6 @@ export default function ContactSection() {
               </Field>
             </div>
 
-            <label className="mt-5 flex cursor-pointer items-start gap-2.5 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                checked={form.includeTech}
-                onChange={(event) =>
-                  update("includeTech", event.target.checked)
-                }
-                className="mt-0.5 h-4 w-4 accent-indigo-600"
-              />
-              <span>
-                Include technical details (browser, screen size, page) to help
-                me find the problem.
-              </span>
-            </label>
-
             <div aria-live="polite">
               {status.text && (
                 <p
@@ -530,29 +470,21 @@ export default function ContactSection() {
               </div>
             )}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={() => send("email")}
-                className="flex h-14 items-center justify-center gap-3 rounded-xl bg-indigo-600 px-6 text-base font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300"
+                className="flex h-14 w-full items-center justify-center gap-3 rounded-xl bg-indigo-600 px-6 text-base font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300"
               >
                 <FaEnvelope aria-hidden="true" />
                 Send to Email
               </button>
-              <button
-                type="button"
-                onClick={() => send("whatsapp")}
-                className="flex h-14 items-center justify-center gap-3 rounded-xl bg-emerald-600 px-6 text-base font-bold text-white shadow-lg shadow-emerald-200 transition hover:bg-emerald-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
-              >
-                <FaWhatsapp aria-hidden="true" className="text-xl" />
-                Send to WhatsApp
-              </button>
             </div>
 
             <p className="mt-4 text-center text-xs text-slate-500">
-              Each button opens your email app or WhatsApp with the message
-              already written. You only need to press Send there. Your mobile
-              number and email will be visible to me so I can reply.
+              This opens your email app with the message already written —
+              just press Send. Your mobile number and email will be visible
+              to me so I can reply.
             </p>
           </form>
         </div>

@@ -1,10 +1,8 @@
 /**
- * Builds the text that is put into WhatsApp / the email app.
- * Both go through a link, so the text has to stay short: optional parts
- * (technical details, file lines, file report) are dropped when it is too long.
+ * Builds the email body text.
+ * Goes through a mailto: link, so text must stay short.
  */
 
-const WHATSAPP_MAX = 1900; // encoded length of the whole message in the wa.me link
 const EMAIL_MAX = 1700; // mailto links are cut by some email apps beyond ~2000
 
 const encodedLength = (text) => encodeURIComponent(text).length;
@@ -33,23 +31,6 @@ const detailLines = ({ name, mobile, email }) =>
   ]
     .filter(Boolean)
     .join("\n");
-
-/** Compact message using WhatsApp's *bold* markup. */
-export function buildWhatsAppText(fields) {
-  const { topicLabel, message, report, snippet, tech } = fields;
-
-  const optional = [];
-  if (report) optional.push(`*File report*\n${report}`);
-  if (snippet) optional.push(`*File lines*\n${snippet.slice(0, 300)}`);
-  if (tech) optional.push(`*Technical*\n${tech}`);
-
-  return fit({
-    head: `*AssignCraft: ${topicLabel}*\n${detailLines(fields)}`,
-    message,
-    optional,
-    max: WHATSAPP_MAX,
-  });
-}
 
 /** Plain-text email body (the subject is built separately). */
 export function buildEmailBody(fields) {

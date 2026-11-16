@@ -55,7 +55,7 @@ Setup: open `src/constants/contact.js` and type your own details:
 - `OWNER_WHATSAPP` – country code first, digits only, e.g. `"919876543210"`.
 - `OWNER_EMAIL` – your email address.
 - `OWNER_PHONE_DISPLAY` – the number shown on the About page and in the contact card.
-  **It is a random placeholder (`+91 98765 43210`) until you replace it.**
+  **It is a random placeholder (`+91 8200833181`) until you replace it.**
 
 (`VITE_CONTACT_WHATSAPP` / `VITE_CONTACT_EMAIL` in Vercel also work and win if set.)
 If a number or email is not set, that button shows a friendly message and the visitor can copy
